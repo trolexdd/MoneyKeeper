@@ -227,7 +227,7 @@ export default function App() {
           {navItems.map(({ label, icon: Icon }) => (
             <button key={label} className={"nav-link " + (activeNav === label ? "active" : "")} onClick={() => setActiveNav(label)}>
               <Icon size={18} strokeWidth={1.8} /><span>{label}</span>
-              {label === "Операции" && <span className="nav-count">{transactions.length}</span>
+              {label === "Операции" && <span className="nav-count">{transactions.length}</span>}
             </button>
           ))}
         </nav>
