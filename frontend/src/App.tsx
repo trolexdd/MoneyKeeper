@@ -8,7 +8,8 @@ import {
 } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import AuthPage from "./AuthPage";
-import { authApi, clearSession, restoreSession, saveSession, signOut, type User } from "./lib/auth";
+import { ApiError, authApi, clearSession, restoreSession, saveSession, signOut, type User } from "./lib/auth";
+import { getTelegramInitData } from "./lib/telegram";
 import {
   transactionsApi,
   type TransactionRecord,
@@ -268,6 +269,9 @@ const mobileNavItems = [
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [telegramInitData] = useState(() => getTelegramInitData());
+  const [telegramLinkRequired, setTelegramLinkRequired] = useState(false);
+  const [telegramAuthError, setTelegramAuthError] = useState("");
   const [period, setPeriod] = useState<Period>("Month");
   const [activeNav, setActiveNav] = useState("Обзор");
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -299,11 +303,35 @@ export default function App() {
 
   useEffect(() => {
     let active = true;
-    restoreSession()
-      .then((restoredUser) => { if (active) setUser(restoredUser); })
-      .finally(() => { if (active) setAuthLoading(false); });
+
+    if (telegramInitData) {
+      authApi.telegramLogin(telegramInitData)
+        .then((session) => {
+          if (!active) return;
+          saveSession(session);
+          setUser(session.user);
+        })
+        .catch((error: unknown) => {
+          if (!active) return;
+          if (error instanceof ApiError && error.status === 404) {
+            setTelegramLinkRequired(true);
+            return;
+          }
+          setTelegramAuthError(
+            error instanceof Error ? error.message : "Не удалось проверить аккаунт Telegram."
+          );
+        })
+        .finally(() => {
+          if (active) setAuthLoading(false);
+        });
+    } else {
+      restoreSession()
+        .then((restoredUser) => { if (active) setUser(restoredUser); })
+        .finally(() => { if (active) setAuthLoading(false); });
+    }
+
     return () => { active = false; };
-  }, []);
+  }, [telegramInitData]);
 
   useEffect(() => {
     if (!user) {
@@ -381,6 +409,15 @@ export default function App() {
     const session = await authApi.register({ email, password });
     saveSession(session);
     setUser(session.user);
+  }
+
+  async function handleTelegramLink(email: string, password: string) {
+    if (!telegramInitData) throw new Error("Не удалось получить данные запуска Telegram.");
+    const session = await authApi.telegramLink(telegramInitData, { email, password });
+    saveSession(session);
+    setUser(session.user);
+    setTelegramLinkRequired(false);
+    setTelegramAuthError("");
   }
 
   async function handleLogout() {
@@ -562,7 +599,17 @@ export default function App() {
   }
 
   if (authLoading) return <main className="auth-screen"><section className="auth-card"><div className="auth-eyebrow"><span className="live-dot" /> MONEYKEEPER</div><h1>Загружаем аккаунт<span>.</span></h1><p className="auth-subtitle">Проверяем вашу сессию...</p></section></main>;
-  if (!user) return <AuthPage onLogin={handleLogin} onRegister={handleRegister} />;
+  if (!user) {
+    return (
+      <AuthPage
+        onLogin={handleLogin}
+        onRegister={handleRegister}
+        onTelegramLink={handleTelegramLink}
+        telegramMode={telegramLinkRequired}
+        errorMessage={telegramAuthError}
+      />
+    );
+  }
 
   return (
     <div className="app-shell">
