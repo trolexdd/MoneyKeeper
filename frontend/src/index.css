@@ -307,3 +307,179 @@ h1, h2, p { margin-top: 0; }
 @media (max-width: 700px) {
   .transaction-delete { opacity: 1; }
 }
+
+
+
+/* Dedicated navigation pages */
+.workspace-switcher {
+  width: 100%;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .18s ease, background .18s ease;
+}
+.workspace-switcher:hover {
+  border-color: #40504c;
+  background: #17221f;
+}
+.nav-link { cursor: pointer; }
+.feature-grid,
+.settings-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 15px;
+  margin-bottom: 15px;
+  align-items: stretch;
+}
+.feature-card {
+  min-height: 260px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 25px;
+}
+.feature-card h2,
+.feature-empty h2,
+.insight-card h2,
+.report-summary-card h2 {
+  margin: 0;
+  color: #edf2f5;
+  font: 700 20px/1.25 "Manrope", sans-serif;
+  letter-spacing: -.55px;
+}
+.feature-card p,
+.feature-empty p,
+.insight-card p {
+  max-width: 520px;
+  margin: 0;
+  color: #91a0ae;
+  font-size: 12px;
+  line-height: 1.75;
+}
+.feature-card .secondary-button,
+.feature-card .primary-button { margin-top: auto; }
+.feature-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 5px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+}
+.feature-icon.lime {
+  color: var(--lime);
+  border-color: #c7f36b28;
+  background: #c7f36b14;
+}
+.feature-icon.cyan {
+  color: var(--cyan);
+  border-color: #55d6ff28;
+  background: #55d6ff14;
+}
+.feature-icon.violet {
+  color: var(--violet);
+  border-color: #a78bfa28;
+  background: #a78bfa14;
+}
+.feature-empty {
+  min-height: 360px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 42px 28px;
+  text-align: center;
+  background:
+    radial-gradient(ellipse at 50% 0%, #55d6ff0c, transparent 58%),
+    var(--surface);
+}
+.feature-empty .feature-icon { width: 54px; height: 54px; }
+.feature-empty p { max-width: 510px; margin: 3px auto 12px; }
+.insight-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 15px;
+  padding: 22px 24px;
+}
+.insight-card .feature-icon { flex: 0 0 auto; margin: 0; }
+.insight-card h2 { margin: 8px 0 7px; font-size: 16px; }
+.insight-card p { font-size: 11px; }
+.report-card { min-height: 300px; }
+.report-summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 25px;
+}
+.report-summary-card h2 { margin: 7px 0 17px; }
+.report-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 13px 0;
+  border-top: 1px solid #26323d;
+  color: #91a0ae;
+  font-size: 11px;
+}
+.report-stat-row strong {
+  color: #e7edf1;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.feature-caption {
+  margin: auto 0 0;
+  padding-top: 17px;
+  color: #758591;
+  font-size: 10px;
+  line-height: 1.55;
+}
+.settings-grid { grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); }
+.settings-profile-card,
+.settings-security-card { min-height: 300px; }
+.settings-field {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 14px 0;
+  border-top: 1px solid #26323d;
+  color: #82919d;
+  font-size: 10px;
+}
+.settings-field strong {
+  overflow-wrap: anywhere;
+  color: #e5ebef;
+  font-size: 12px;
+  font-weight: 600;
+}
+.settings-field .settings-id {
+  color: #9ba9b4;
+  font: 10px ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+.analytics-metrics .analytics-metric { min-height: 150px; }
+.analytics-metrics .stat-value { font-size: clamp(20px, 2.2vw, 28px); }
+.reports-grid { grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); }
+
+@media (max-width: 900px) {
+  .feature-grid,
+  .settings-grid,
+  .reports-grid { grid-template-columns: minmax(0, 1fr); }
+  .feature-card,
+  .settings-profile-card,
+  .settings-security-card { min-height: auto; }
+  .feature-card .secondary-button,
+  .feature-card .primary-button { margin-top: 8px; }
+}
+@media (max-width: 520px) {
+  .feature-card,
+  .report-summary-card { padding: 19px; }
+  .feature-empty { min-height: 300px; padding: 30px 18px; }
+  .insight-card { padding: 18px; gap: 12px; }
+  .insight-card h2 { font-size: 14px; }
+  .settings-field .settings-id { font-size: 9px; }
+}
