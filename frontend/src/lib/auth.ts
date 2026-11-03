@@ -17,7 +17,7 @@ export type AuthSession = {
 
 type Credentials = { email: string; password: string };
 
-class ApiError extends Error {
+export class ApiError extends Error {
   constructor(message: string, readonly status: number) {
     super(message);
   }
@@ -65,6 +65,18 @@ export const authApi = {
     request<AuthSession>("/api/v1/auth/register", {
       method: "POST",
       body: JSON.stringify(credentials),
+    }),
+
+  telegramLogin: (initData: string) =>
+    request<AuthSession>("/api/v1/auth/telegram", {
+      method: "POST",
+      body: JSON.stringify({ init_data: initData }),
+    }),
+
+  telegramLink: (initData: string, credentials: Credentials) =>
+    request<AuthSession>("/api/v1/auth/telegram/link", {
+      method: "POST",
+      body: JSON.stringify({ init_data: initData, ...credentials }),
     }),
 
   me: (accessToken: string) =>
