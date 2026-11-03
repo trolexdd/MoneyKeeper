@@ -352,6 +352,40 @@ export default function App() {
   const maxCategoryExpense = Math.max(0, ...categoryExpenses.map((item) => Number(item.amount)));
   const periodName = ({ Week: "неделю", Month: "месяц", Year: "год" })[period];
   const periodLabel = ({ Week: "НЕДЕЛЮ", Month: "МЕСЯЦ", Year: "ГОД" })[period];
+  const pageCopy: Record<string, { eyebrow: string; title: string; accent: string; subtitle: string }> = {
+    "Обзор": { eyebrow: "ВАШИ ФИНАНСЫ", title: "Ваши деньги —", accent: "под контролем.", subtitle: "Все важные показатели и последние движения средств в одном месте." },
+    "Операции": { eyebrow: "ЛИЧНЫЙ ЖУРНАЛ", title: "История", accent: "операций.", subtitle: "Все доходы и расходы, сохранённые в вашем аккаунте." },
+    "Бюджеты": { eyebrow: "ПЛАНИРОВАНИЕ", title: "Расходы под", accent: "контролем.", subtitle: "Следите за распределением расходов и готовьте лимиты на категории." },
+    "Карты": { eyebrow: "ВАШИ СЧЕТА", title: "Деньги в одном", accent: "месте.", subtitle: "Раздел счетов и банковских карт будет подключён следующим этапом." },
+    "Умная аналитика": { eyebrow: "АНАЛИТИКА", title: "Понимайте свои", accent: "финансы глубже.", subtitle: "Фактические доходы, расходы и динамика за выбранный период." },
+    "Отчёты": { eyebrow: "ЭКСПОРТ ДАННЫХ", title: "Финансовые", accent: "отчёты.", subtitle: "Скачивайте историю операций для собственных расчётов и хранения." },
+    "Настройки": { eyebrow: "ПРОФИЛЬ", title: "Настройки", accent: "аккаунта.", subtitle: "Информация о вашем аккаунте и текущей сессии." }
+  };
+  const currentPage = pageCopy[activeNav] ?? pageCopy["Обзор"];
+
+  function exportTransactionsCsv() {
+    const safeText = (value: string) => {
+      const normalized = value.replace(/\\r?\\n/g, " ").trim();
+      const protectedValue = /^[=+@\\t\\r-]/.test(normalized) ? "'" + normalized : normalized;
+      return '"' + protectedValue.replace(/"/g, '""') + '"';
+    };
+    const rows = [
+      ["Дата", "Тип", "Описание", "Категория", "Сумма", "Валюта"],
+      ...transactions.map((item) => [item.date, item.type === "income" ? "Доход" : "Расход", item.name, item.category, String(item.amount), "RUB"])
+    ];
+    const csv = "\\uFEFF" + rows.map((row) => row.map((value, index) =>
+      index === 4 ? String(value) : safeText(String(value))
+    ).join(";")).join("\\r\\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "moneykeeper-transactions.csv";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
 
   async function addTransaction(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -406,11 +440,11 @@ export default function App() {
           <span className="brand-mark"><Wallet size={19} strokeWidth={2.2} /></span>
           <span className="brand-name">money<span>keeper</span><i>.</i></span>
         </a>
-        <div className="workspace-switcher">
+        <button className="workspace-switcher" type="button" onClick={() => setActiveNav("Настройки")}>
           <div className="workspace-avatar">P</div>
           <div className="workspace-copy"><strong>Личный кабинет</strong><span>Бесплатный план</span></div>
           <ChevronDown size={15} />
-        </div>
+        </button>
         <div className="nav-label">РАБОЧЕЕ ПРОСТРАНСТВО</div>
         <nav className="main-nav" aria-label="Основная навигация">
           {navItems.map(({ label, icon: Icon }) => (
@@ -422,8 +456,8 @@ export default function App() {
         </nav>
         <div className="nav-label tools-label">ИНСТРУМЕНТЫ</div>
         <nav className="main-nav" aria-label="Инструменты">
-          <button className="nav-link" onClick={() => setActiveNav("Умная аналитика")}><Sparkles size={18} /><span>Умная аналитика</span><span className="new-pill">NEW</span></button>
-          <button className="nav-link" onClick={() => setActiveNav("Отчёты")}><FileText size={18} /><span>Отчёты</span></button>
+          <button className={"nav-link " + (activeNav === "Умная аналитика" ? "active" : "")} onClick={() => setActiveNav("Умная аналитика")}><Sparkles size={18} /><span>Умная аналитика</span><span className="new-pill">NEW</span></button>
+          <button className={"nav-link " + (activeNav === "Отчёты" ? "active" : "")} onClick={() => setActiveNav("Отчёты")}><FileText size={18} /><span>Отчёты</span></button>
         </nav>
         <div className="sidebar-bottom">
           <div className="upgrade-card">
@@ -433,7 +467,7 @@ export default function App() {
             <button onClick={() => setActiveNav("Умная аналитика")}>Открыть аналитику <ArrowUpRight size={14} /></button>
             <div className="upgrade-orb" />
           </div>
-          <button className="nav-link settings-link" onClick={() => setActiveNav("Настройки")}><Settings2 size={18} /><span>Настройки</span></button>
+          <button className={"nav-link settings-link " + (activeNav === "Настройки" ? "active" : "")} onClick={() => setActiveNav("Настройки")}><Settings2 size={18} /><span>Настройки</span></button>
           <div className="profile-row">
             <div className="profile-avatar">П</div>
             <div className="profile-copy"><strong>{user.email}</strong><span>Личный аккаунт</span></div>
@@ -446,7 +480,9 @@ export default function App() {
         <header className="topbar">
           <div className="breadcrumb"><span>Рабочее пространство</span><span className="crumb-slash">/</span><strong>{activeNav}</strong></div>
           <div className="topbar-actions">
-            <label className="search-box"><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Поиск операций..." aria-label="Поиск операций" /><kbd>⌘ K</kbd></label>
+            {(activeNav === "Обзор" || activeNav === "Операции") && (
+              <label className="search-box"><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Поиск операций..." aria-label="Поиск операций" /><kbd>⌘ K</kbd></label>
+            )}
             <div className="notification-wrap">
               <button className="icon-button notification-button" aria-label="Уведомления" onClick={() => setShowNotifications((value) => !value)}><Bell size={18} /><i /></button>
               {showNotifications && <div className="notification-popover"><strong>Новых уведомлений нет</strong><span>Здесь появятся новые события.</span></div>}
