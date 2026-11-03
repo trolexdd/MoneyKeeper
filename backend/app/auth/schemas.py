@@ -53,3 +53,18 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
     expires_in: int
     user: UserRead
+
+
+
+class TelegramLoginRequest(BaseModel):
+    init_data: str = Field(min_length=1, max_length=8192)
+
+
+class TelegramLinkRequest(TelegramLoginRequest):
+    email: EmailStr
+    password: str = Field(min_length=1, max_length=128)
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_email(cls, value: object) -> object:
+        return _normalize_email(value)
