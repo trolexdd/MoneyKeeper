@@ -57,6 +57,8 @@ Implemented authentication endpoints (prefix /api/v1/auth):
 
 The API returns access and refresh tokens in JSON. Clients must avoid logging tokens and should store refresh tokens only in an appropriately protected client-side storage mechanism.
 
+Telegram Mini App authentication is available at `POST /api/v1/auth/telegram` and account linking at `POST /api/v1/auth/telegram/link`. Configure `TELEGRAM_BOT_TOKEN` only on the backend. Raw Mini App initData is verified with HMAC-SHA-256 and a freshness window controlled by `TELEGRAM_INIT_DATA_MAX_AGE_SECONDS` (default 3600 seconds). See `docs/TELEGRAM_MINI_APP.md` for deployment configuration.
+
 Passwords use Argon2id (19 MiB, 2 passes, 1 lane). Existing hashes created with older parameters are upgraded automatically after a successful login, so the first login after this change can still take longer; subsequent logins use the tuned parameters.
 
 ## Financial data
