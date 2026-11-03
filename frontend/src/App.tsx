@@ -72,6 +72,8 @@ function TransactionIcon({ type }: { type: Transaction["icon"] }) {
 }
 
 export default function App() {
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [period, setPeriod] = useState<Period>("Month");
   const [activeNav, setActiveNav] = useState("Обзор");
   const [transactions, setTransactions] = useState(initialTransactions);
@@ -128,6 +130,9 @@ export default function App() {
     setShowModal(false);
   }
 
+  if (authLoading) return <main className="auth-screen"><section className="auth-card"><div className="auth-eyebrow"><span className="live-dot" /> MONEYKEEPER</div><h1>Загружаем аккаунт<span>.</span></h1><p className="auth-subtitle">Проверяем вашу сессию...</p></section></main>;
+  if (!user) return <AuthPage onLogin={handleLogin} onRegister={handleRegister} />;
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -165,8 +170,8 @@ export default function App() {
           <button className="nav-link settings-link" onClick={() => setActiveNav("Настройки")}><Settings2 size={18} /><span>Настройки</span></button>
           <div className="profile-row">
             <div className="profile-avatar">П</div>
-            <div className="profile-copy"><strong>Пользователь</strong><span>Личный аккаунт</span></div>
-            <Ellipsis size={18} />
+            <div className="profile-copy"><strong>{user.email}</strong><span>Личный аккаунт</span></div>
+            <button className="icon-button" type="button" aria-label="Выйти из аккаунта" title="Выйти" onClick={handleLogout}><LogOut size={16} /></button>
           </div>
         </div>
       </aside>
@@ -189,7 +194,7 @@ export default function App() {
             <div>
               <div className="eyebrow"><span className="live-dot" /> ВАШИ ФИНАНСЫ</div>
               <h1>Ваши деньги — <em>под контролем.</em></h1>
-              <p className="heading-subtitle">Вот что происходит с вашими финансами.</p>
+              <p className="heading-subtitle">Пока здесь демонстрационные суммы. Реальные счета подключим следующим этапом.</p>
             </div>
             <div className="heading-actions">
               <button className="secondary-button" onClick={() => setActiveNav("Отчёты")}><Download size={16} /> Экспорт</button>
