@@ -19,13 +19,11 @@ ZERO = Decimal("0.00")
 
 def _period_bounds(year: int, month: int) -> tuple[datetime, datetime]:
     start_date = date(year, month, 1)
-    if month == 12:
-        end_date = date(year + 1, 1, 1)
-    else:
-        end_date = date(year, month + 1, 1)
+    last_day = calendar.monthrange(year, month)[1]
+    end_date = date(year, month, last_day)
     return (
         datetime.combine(start_date, time.min, tzinfo=UTC),
-        datetime.combine(end_date, time.min, tzinfo=UTC),
+        datetime.combine(end_date, time.max, tzinfo=UTC),
     )
 
 
@@ -84,7 +82,7 @@ def list_budgets(
             Transaction.user_id == user.id,
             Transaction.type == "expense",
             Transaction.occurred_at >= start_at,
-            Transaction.occurred_at < end_at,
+            Transaction.occurred_at <= end_at,
         )
         .group_by(Transaction.category)
     ).all()
@@ -125,7 +123,7 @@ def create_budget(
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="A budget for this category and month already exists.",
+            detail="На эту категорию уже создан бюджет за выбранный месяц.",
         ) from None
     db.refresh(budget)
 
@@ -160,7 +158,7 @@ def update_budget(
         )
     )
     if budget is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Budget not found.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Бюджет не найден.")
 
     budget.limit_amount = payload.limit_amount
     db.commit()
