@@ -44,6 +44,6 @@ The liveness test does not require a running database. Readiness is expected to 
 
 ## Configuration
 
-The backend reads environment variables, including `DATABASE_URL`, `APP_ENV` and `APP_SECRET_KEY`. For local development, copy the repository-root `.env.example` to `.env` and keep it out of Git. The default secret is development-only and must be replaced before any deployment.
+The backend reads environment variables, including `DATABASE_URL`, `APP_ENV` and `APP_SECRET_KEY`. For local development, copy the repository-root `.env.example` to the repository-root `.env` and keep it out of Git. The backend is started from `backend/`, so its settings load `../.env`. The default secret is development-only and must be replaced before any deployment.
 
 This scaffold does not yet implement authentication, ledger operations or database migrations.
