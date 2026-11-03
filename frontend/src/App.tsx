@@ -326,7 +326,7 @@ export default function App() {
 
             <article className="panel budget-panel">
               <div className="panel-heading budget-heading">
-                <div><div className="panel-kicker">СТРУКТУРА РАСХОДОВ</div><h2>По категориям</h2><p>Распределение расходов за ${periodName}.</p></div>
+                <div><div className="panel-kicker">СТРУКТУРА РАСХОДОВ</div><h2>По категориям</h2><p>Распределение расходов за {periodName}.</p></div>
               </div>
               <div className="budget-total-row"><div><strong>{money(Number(summary?.period_expenses ?? 0))}</strong><span> всего за период</span></div><span className="budget-percent">{categoryExpenses.length} кат.</span></div>
               <div className="budget-list">
