@@ -28,6 +28,12 @@ The frontend supports registration, login, current-user loading, refresh-token r
 
 The current development client stores tokens in `sessionStorage`, so the session is cleared when the browser tab is closed. This is a development-stage approach; before production, move refresh-token handling to Secure, HttpOnly, SameSite cookies and add a production CORS allowlist.
 
+## Telegram Mini App
+
+The frontend loads the official Telegram WebApp SDK. When launched inside Telegram, it sends the raw `Telegram.WebApp.initData` to the backend and never treats `initDataUnsafe` as authentication data. An unlinked Telegram user is prompted to prove ownership of an existing MoneyKeeper profile using its email and password; after linking, subsequent Mini App launches use Telegram authentication and the same account data.
+
+See [Telegram Mini App setup](../docs/TELEGRAM_MINI_APP.md) for the BotFather, HTTPS hosting, backend token and CORS configuration steps.
+
 ## Navigation
 
 - **Обзор** — balance, income/expense totals, cashflow chart, category breakdown, latest transactions.
