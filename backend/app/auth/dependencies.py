@@ -7,9 +7,9 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.auth.security import decode_access_token
 from app.db.session import get_db
 from app.models import User, UserSession
-from app.auth.security import decode_access_token
 
 _bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -39,10 +39,15 @@ def get_current_user(
             UserSession.id == session_id,
             UserSession.user_id == user_id,
             UserSession.revoked_at.is_(None),
-            UserSession.expires_at > now,
         )
     )
     if user_session is None:
+        raise unauthorized
+
+    expires_at = user_session.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=UTC)
+    if expires_at <= now:
         raise unauthorized
 
     user = db.get(User, user_id)
