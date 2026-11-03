@@ -5,6 +5,7 @@ on:
     branches:
       - bootstrap/project-foundation
   pull_request:
+    types: [opened, synchronize, reopened, edited]
     branches:
       - main
 
