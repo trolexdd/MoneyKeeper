@@ -24,7 +24,11 @@ from app.auth.security import (
     verify_password_and_update,
     verify_unknown_user_password,
 )
-from app.auth.telegram import TelegramIdentity, TelegramInitDataError, validate_telegram_init_data
+from app.auth.telegram import (
+    TelegramIdentity,
+    TelegramInitDataError,
+    validate_telegram_init_data,
+)
 from app.core.config import get_settings
 from app.db.session import get_db
 from app.models import User, UserSession
