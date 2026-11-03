@@ -12,7 +12,7 @@
 | Ledger | Доходы, расходы, переводы | P0 | Planned |
 | Ledger | Редактирование, удаление, undo | P0 | Planned |
 | Categories | Категории и иконки | P0 | Planned |
-| Budgets | Месячные лимиты по категориям, CRUD, прогресс и предупреждения 80%/100% | P1 | In Progress |
+| Budgets | Месячные лимиты по категориям, CRUD, прогресс и предупреждения 80%/100% | P1 | Verified |
 | Planning | Будущие и повторяющиеся операции | P1 | Planned |
 | Deposits | Вклады и расчёт доходности | P1 | Planned |
 | Analytics | Сводки и динамика | P1 | Planned |
