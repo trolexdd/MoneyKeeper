@@ -3,7 +3,8 @@ import {
   Activity, ArrowDownLeft, ArrowUpRight, Bell, BriefcaseBusiness,
   CarFront, ChevronDown, CircleHelp, Coffee, CreditCard, Download, Ellipsis,
   FileText, House, LayoutDashboard, LogOut, Plus, Search, Settings2, ShoppingBag,
-  SlidersHorizontal, Sparkles, Wallet, X, Trash2
+  SlidersHorizontal, Sparkles, Wallet, X, Trash2, ChevronLeft, ChevronRight,
+  Pencil, CircleAlert, CheckCircle2, CalendarDays
 } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import AuthPage from "./AuthPage";
@@ -15,6 +16,7 @@ import {
   type TransactionType,
   type SummaryPeriod
 } from "./lib/transactions";
+import { budgetsApi, type BudgetRecord } from "./lib/budgets";
 
 type Period = "Week" | "Month" | "Year";
 type Transaction = {
@@ -281,6 +283,19 @@ export default function App() {
   const [formCategory, setFormCategory] = useState("Продукты");
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [budgets, setBudgets] = useState<BudgetRecord[]>([]);
+  const [budgetLoading, setBudgetLoading] = useState(false);
+  const [budgetError, setBudgetError] = useState("");
+  const [budgetMonth, setBudgetMonth] = useState(() => {
+    const today = new Date();
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+  });
+  const [showBudgetModal, setShowBudgetModal] = useState(false);
+  const [editingBudget, setEditingBudget] = useState<BudgetRecord | null>(null);
+  const [budgetCategory, setBudgetCategory] = useState("Продукты");
+  const [budgetAmount, setBudgetAmount] = useState("");
+  const [budgetModalError, setBudgetModalError] = useState("");
+  const [budgetSaving, setBudgetSaving] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -325,6 +340,36 @@ export default function App() {
     return () => { active = false; };
   }, [user, period]);
 
+  useEffect(() => {
+    if (!user || activeNav !== "Бюджеты") {
+      if (!user) setBudgets([]);
+      return;
+    }
+
+    let active = true;
+    const [year, month] = budgetMonth.split("-").map(Number);
+    setBudgetLoading(true);
+    setBudgetError("");
+
+    budgetsApi.list(year, month)
+      .then((records) => {
+        if (active) setBudgets(records);
+      })
+      .catch((error: unknown) => {
+        if (!active) return;
+        if (error instanceof Error && error.message.includes("Сессия истекла")) {
+          setUser(null);
+          return;
+        }
+        setBudgetError(error instanceof Error ? error.message : "Не удалось загрузить бюджеты.");
+      })
+      .finally(() => {
+        if (active) setBudgetLoading(false);
+      });
+
+    return () => { active = false; };
+  }, [user, activeNav, budgetMonth]);
+
   async function handleLogin(email: string, password: string) {
     const session = await authApi.login({ email, password });
     saveSession(session);
@@ -368,6 +413,75 @@ export default function App() {
     "Настройки": { eyebrow: "ПРОФИЛЬ", title: "Настройки", accent: "аккаунта.", subtitle: "Информация о вашем аккаунте и текущей сессии." }
   };
   const currentPage = pageCopy[activeNav] ?? pageCopy["Обзор"];
+  const [budgetYear, budgetMonthNumber] = budgetMonth.split("-").map(Number);
+  const budgetMonthTitle = new Date(budgetYear, budgetMonthNumber - 1, 1)
+    .toLocaleDateString("ru-RU", { month: "long", year: "numeric" });
+  const budgetTotals = useMemo(() => {
+    const limit = budgets.reduce((total, item) => total + Number(item.limit_amount), 0);
+    const spent = budgets.reduce((total, item) => total + Number(item.spent_amount), 0);
+    return {
+      limit,
+      spent,
+      remaining: limit - spent,
+      overLimitCount: budgets.filter((item) => item.is_over_limit).length
+    };
+  }, [budgets]);
+
+  function moveBudgetMonth(offset: number) {
+    const next = new Date(budgetYear, budgetMonthNumber - 1 + offset, 1);
+    setBudgetMonth(`${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}`);
+  }
+
+  function openBudgetEditor(budget?: BudgetRecord) {
+    setEditingBudget(budget ?? null);
+    setBudgetCategory(budget?.category ?? "Продукты");
+    setBudgetAmount(budget?.limit_amount ?? "");
+    setBudgetModalError("");
+    setShowBudgetModal(true);
+  }
+
+  async function saveBudget(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const amount = Number(budgetAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setBudgetModalError("Укажите положительный лимит.");
+      return;
+    }
+
+    setBudgetSaving(true);
+    setBudgetModalError("");
+    try {
+      if (editingBudget) {
+        await budgetsApi.update(editingBudget.id, { limit_amount: budgetAmount });
+      } else {
+        await budgetsApi.create({
+          category: budgetCategory,
+          limit_amount: budgetAmount,
+          year: budgetYear,
+          month: budgetMonthNumber
+        });
+      }
+      const refreshed = await budgetsApi.list(budgetYear, budgetMonthNumber);
+      setBudgets(refreshed);
+      setShowBudgetModal(false);
+    } catch (error) {
+      setBudgetModalError(error instanceof Error ? error.message : "Не удалось сохранить бюджет.");
+    } finally {
+      setBudgetSaving(false);
+    }
+  }
+
+  async function deleteBudget(budget: BudgetRecord) {
+    if (!window.confirm(`Удалить бюджет «${budget.category}» за ${budgetMonthTitle}?`)) return;
+    setBudgetError("");
+    try {
+      await budgetsApi.remove(budget.id);
+      setBudgets((current) => current.filter((item) => item.id !== budget.id));
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("Сессия истекла")) setUser(null);
+      setBudgetError(error instanceof Error ? error.message : "Не удалось удалить бюджет.");
+    }
+  }
 
   function exportTransactionsCsv() {
     const safeText = (value: string) => {
@@ -535,9 +649,11 @@ export default function App() {
               {activeNav !== "Отчёты" && (
                 <button className="secondary-button" onClick={() => setActiveNav("Отчёты")}><Download size={16} /> Экспорт</button>
               )}
-              {activeNav !== "Настройки" && activeNav !== "Отчёты" && activeNav !== "Карты" && (
+              {activeNav === "Бюджеты" ? (
+                <button className="primary-button" onClick={() => openBudgetEditor()}><Plus size={17} strokeWidth={2.4} /> Создать бюджет</button>
+              ) : activeNav !== "Настройки" && activeNav !== "Отчёты" && activeNav !== "Карты" ? (
                 <button className="primary-button" onClick={() => { setFormError(""); setShowModal(true); }}><Plus size={17} strokeWidth={2.4} /> Добавить операцию</button>
-              )}
+              ) : null}
             </div>
           </section>
 
@@ -603,16 +719,130 @@ export default function App() {
           )}
 
           {activeNav === "Бюджеты" && (
-            <section className="feature-grid">
-              <article className="panel feature-card budget-plan-card">
-                <div className="feature-icon lime"><SlidersHorizontal size={20} /></div>
-                <div className="panel-kicker">ЛИМИТЫ И ЦЕЛИ</div>
-                <h2>Бюджеты появятся здесь</h2>
-                <p>Создание месячных лимитов и отслеживание прогресса ещё не подключены. Пока здесь доступна фактическая структура ваших расходов по категориям.</p>
-                <button className="secondary-button" onClick={() => setActiveNav("Операции")}>Посмотреть операции <ArrowUpRight size={14} /></button>
-              </article>
-              <CategoryBreakdownPanel items={categoryExpenses} total={Number(summary?.period_expenses ?? 0)} periodName={periodName} />
-            </section>
+            <>
+              <section className="budget-period-bar panel">
+                <div className="budget-period-title">
+                  <div className="panel-kicker">БЮДЖЕТНЫЙ ПЕРИОД</div>
+                  <h2>{budgetMonthTitle}</h2>
+                </div>
+                <div className="budget-period-actions">
+                  <button className="icon-button" type="button" aria-label="Предыдущий месяц" onClick={() => moveBudgetMonth(-1)}>
+                    <ChevronLeft size={18} />
+                  </button>
+                  <label className="budget-month-picker">
+                    <CalendarDays size={16} />
+                    <input
+                      type="month"
+                      value={budgetMonth}
+                      onChange={(event) => event.target.value && setBudgetMonth(event.target.value)}
+                      aria-label="Выбрать месяц бюджета"
+                    />
+                  </label>
+                  <button className="icon-button" type="button" aria-label="Следующий месяц" onClick={() => moveBudgetMonth(1)}>
+                    <ChevronRight size={18} />
+                  </button>
+                </div>
+              </section>
+
+              {budgetError && <div className="auth-error dashboard-error" role="alert">{budgetError}</div>}
+
+              <section className="budget-summary-grid">
+                <article className="panel budget-summary-card">
+                  <div className="budget-summary-label"><span className="budget-summary-icon lime"><SlidersHorizontal size={16} /></span> ОБЩИЙ ЛИМИТ</div>
+                  <strong>{money(budgetTotals.limit)}</strong>
+                  <span>По всем категориям</span>
+                </article>
+                <article className="panel budget-summary-card">
+                  <div className="budget-summary-label"><span className="budget-summary-icon cyan"><Activity size={16} /></span> УЖЕ ПОТРАЧЕНО</div>
+                  <strong>{money(budgetTotals.spent)}</strong>
+                  <span>Фактические расходы</span>
+                </article>
+                <article className={"panel budget-summary-card " + (budgetTotals.remaining < 0 ? "is-over" : "")}>
+                  <div className="budget-summary-label"><span className="budget-summary-icon violet"><Wallet size={16} /></span> ОСТАТОК</div>
+                  <strong>{money(budgetTotals.remaining)}</strong>
+                  <span>{budgetTotals.remaining < 0 ? "Превышение общего лимита" : "Доступно по бюджетам"}</span>
+                </article>
+                <article className={"panel budget-summary-card " + (budgetTotals.overLimitCount > 0 ? "is-over" : "")}>
+                  <div className="budget-summary-label"><span className="budget-summary-icon coral"><CircleAlert size={16} /></span> ПРЕВЫШЕНИЯ</div>
+                  <strong>{budgetTotals.overLimitCount}</strong>
+                  <span>Категорий выше лимита</span>
+                </article>
+              </section>
+
+              <div className="budget-list-heading">
+                <div>
+                  <div className="panel-kicker">КАТЕГОРИИ И ЛИМИТЫ</div>
+                  <h2>Мои бюджеты</h2>
+                  <p>Потрачено считается автоматически по расходным операциям выбранного месяца.</p>
+                </div>
+                <span className="budget-count">{budgets.length} {budgets.length === 1 ? "категория" : budgets.length > 1 && budgets.length < 5 ? "категории" : "категорий"}</span>
+              </div>
+
+              {budgetLoading ? (
+                <div className="panel empty-state budget-empty">Загружаем бюджеты...</div>
+              ) : budgets.length === 0 ? (
+                <section className="panel budget-empty">
+                  <div className="feature-icon lime"><Target size={22} /></div>
+                  <h2>Пока нет бюджетов на этот месяц</h2>
+                  <p>Создайте лимит для категории — MoneyKeeper будет учитывать расходы и покажет, сколько осталось.</p>
+                  <button className="primary-button" onClick={() => openBudgetEditor()}>
+                    <Plus size={16} /> Создать первый бюджет
+                  </button>
+                </section>
+              ) : (
+                <section className="budget-cards-grid">
+                  {budgets.map((budget, index) => {
+                    const usage = Number(budget.usage_percent);
+                    const over = budget.is_over_limit;
+                    const warning = !over && usage >= 80;
+                    const tone = over ? "over" : warning ? "warning" : "normal";
+                    const color = ["lime", "cyan", "violet", "coral"][index % 4];
+                    return (
+                      <article className={"panel budget-card " + tone} key={budget.id}>
+                        <div className="budget-card-top">
+                          <div className="budget-card-category">
+                            <span className={"budget-category-icon " + color}>₽</span>
+                            <div>
+                              <strong>{budget.category}</strong>
+                              <span>{over ? "Лимит превышен" : warning ? "Почти исчерпан" : "В пределах лимита"}</span>
+                            </div>
+                          </div>
+                          <div className="budget-card-actions">
+                            <button className="icon-button" type="button" title="Изменить лимит" aria-label={"Изменить бюджет " + budget.category} onClick={() => openBudgetEditor(budget)}>
+                              <Pencil size={15} />
+                            </button>
+                            <button className="icon-button budget-delete-button" type="button" title="Удалить бюджет" aria-label={"Удалить бюджет " + budget.category} onClick={() => void deleteBudget(budget)}>
+                              <Trash2 size={15} />
+                            </button>
+                          </div>
+                        </div>
+                        <div className="budget-card-numbers">
+                          <strong>{money(Number(budget.spent_amount))}</strong>
+                          <span>из {money(Number(budget.limit_amount))}</span>
+                        </div>
+                        <div className="budget-progress-track">
+                          <span style={{ width: Math.min(100, Math.max(0, usage)) + "%" }} />
+                        </div>
+                        <div className="budget-card-bottom">
+                          <span className={"budget-usage " + tone}>{usage.toFixed(0)}% использовано</span>
+                          <span className="budget-remaining">
+                            {Number(budget.remaining_amount) < 0
+                              ? "Превышение " + money(Math.abs(Number(budget.remaining_amount)))
+                              : "Осталось " + money(Number(budget.remaining_amount))}
+                          </span>
+                        </div>
+                        {over && (
+                          <div className="budget-alert over-alert"><CircleAlert size={14} /> Превышен лимит на {money(Math.abs(Number(budget.remaining_amount)))}</div>
+                        )}
+                        {warning && (
+                          <div className="budget-alert warning-alert"><CircleAlert size={14} /> Использовано больше 80% лимита</div>
+                        )}
+                      </article>
+                    );
+                  })}
+                </section>
+              )}
+            </>
           )}
 
           {activeNav === "Карты" && (
@@ -723,6 +953,51 @@ export default function App() {
           </footer>
         </div>
       </main>
+
+      {showBudgetModal && (
+        <div
+          className="modal-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !budgetSaving) setShowBudgetModal(false);
+          }}
+        >
+          <form className="transaction-modal" onSubmit={saveBudget}>
+            <div className="modal-heading">
+              <div>
+                <span className="panel-kicker">МЕСЯЧНЫЙ ЛИМИТ</span>
+                <h2>{editingBudget ? "Изменить бюджет" : "Новый бюджет"}</h2>
+              </div>
+              <button type="button" className="icon-button" aria-label="Закрыть" disabled={budgetSaving} onClick={() => setShowBudgetModal(false)}>
+                <X size={19} />
+              </button>
+            </div>
+            <label className="form-label">КАТЕГОРИЯ
+              <select value={budgetCategory} onChange={(event) => setBudgetCategory(event.target.value)} disabled={Boolean(editingBudget)}>
+                {["Продукты", "Жильё", "Транспорт", "Кафе", "Покупки", "Здоровье", "Подписки", "Развлечения", "Связь", "Другое"]
+                  .map((category) => <option key={category} value={category}>{category}</option>)}
+              </select>
+            </label>
+            <label className="form-label">ЛИМИТ НА {budgetMonthTitle.toLocaleUpperCase("ru-RU")}
+              <input
+                type="number"
+                min="0.01"
+                max="999999999999.99"
+                step="0.01"
+                value={budgetAmount}
+                onChange={(event) => setBudgetAmount(event.target.value)}
+                placeholder="Например, 15000"
+                required
+              />
+            </label>
+            {budgetModalError && <div className="auth-error" role="alert">{budgetModalError}</div>}
+            <button className="primary-button modal-submit" type="submit" disabled={budgetSaving}>
+              <CheckCircle2 size={16} /> {budgetSaving ? "Сохраняем..." : editingBudget ? "Сохранить изменения" : "Создать бюджет"}
+            </button>
+            <p className="modal-hint">Лимит будет применён к расходам категории за выбранный месяц.</p>
+          </form>
+        </div>
+      )}
 
       {showModal && (
         <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowModal(false); }}>
