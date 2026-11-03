@@ -275,7 +275,7 @@ export default function App() {
             </div>
             <div className="heading-actions">
               <button className="secondary-button" onClick={() => setActiveNav("Отчёты")}><Download size={16} /> Экспорт</button>
-              <button className="primary-button" onClick={() => setShowModal(true)}><Plus size={17} strokeWidth={2.4} /> Добавить операцию</button>
+              <button className="primary-button" onClick={() => { setFormError(""); setShowModal(true); }}><Plus size={17} strokeWidth={2.4} /> Добавить операцию</button>
             </div>
           </section>
 
@@ -363,14 +363,14 @@ export default function App() {
 
           <section className="panel transactions-panel">
             <div className="panel-heading transactions-heading">
-              <div><div className="panel-kicker">ПОСЛЕДНИЕ ОПЕРАЦИИ</div><h2>Последние операции</h2><p>История ваших финансовых операций.</p></div>
+              <div><div className="panel-kicker">ПОСЛЕДНИЕ ОПЕРАЦИИ</div><h2>{activeNav === "Операции" ? "Все операции" : "Последние операции"}</h2><p>История ваших финансовых операций.</p></div>
               <button className="secondary-button compact-button" onClick={() => setActiveNav("Операции")}>Все операции <ArrowUpRight size={14} /></button>
             </div>
             <div className="transaction-table">
               <div className="transaction-table-head"><span>ОПЕРАЦИЯ</span><span>КАТЕГОРИЯ</span><span>ДАТА</span><span className="amount-heading">СУММА</span></div>
               {dataLoading ? (
                 <div className="empty-state">Загружаем операции...</div>
-              ) : visibleTransactions.slice(0, 8).map((item) => (
+              ) : visibleTransactions.slice(0, activeNav === "Операции" ? 100 : 8).map((item) => (
                 <div className="transaction-row" key={item.id}>
                   <div className="transaction-name"><span className={"transaction-icon " + item.icon}><TransactionIcon type={item.icon} /></span><strong>{item.name}</strong><button className="transaction-delete" type="button" title="Удалить операцию" aria-label={"Удалить " + item.name} onClick={() => void deleteTransaction(item.id)}><Trash2 size={14} /></button></div>
                   <div className="transaction-category">{item.category}</div>
