@@ -469,8 +469,8 @@ export default function App() {
         </nav>
         <div className="nav-label tools-label">ИНСТРУМЕНТЫ</div>
         <nav className="main-nav" aria-label="Инструменты">
-          <button className={"nav-link " + (activeNav === "Умная аналитика" ? "active" : "")} onClick={() => setActiveNav("Умная аналитика")}><Sparkles size={18} /><span>Умная аналитика</span><span className="new-pill">NEW</span></button>
-          <button className={"nav-link " + (activeNav === "Отчёты" ? "active" : "")} onClick={() => setActiveNav("Отчёты")}><FileText size={18} /><span>Отчёты</span></button>
+          <button title="Умная аналитика" aria-label="Умная аналитика" className={"nav-link " + (activeNav === "Умная аналитика" ? "active" : "")} onClick={() => setActiveNav("Умная аналитика")}><Sparkles size={18} /><span>Умная аналитика</span><span className="new-pill">NEW</span></button>
+          <button title="Отчёты" aria-label="Отчёты" className={"nav-link " + (activeNav === "Отчёты" ? "active" : "")} onClick={() => setActiveNav("Отчёты")}><FileText size={18} /><span>Отчёты</span></button>
         </nav>
         <div className="sidebar-bottom">
           <div className="upgrade-card">
@@ -480,7 +480,7 @@ export default function App() {
             <button onClick={() => setActiveNav("Умная аналитика")}>Открыть аналитику <ArrowUpRight size={14} /></button>
             <div className="upgrade-orb" />
           </div>
-          <button className={"nav-link settings-link " + (activeNav === "Настройки" ? "active" : "")} onClick={() => setActiveNav("Настройки")}><Settings2 size={18} /><span>Настройки</span></button>
+          <button title="Настройки" aria-label="Настройки" className={"nav-link settings-link " + (activeNav === "Настройки" ? "active" : "")} onClick={() => setActiveNav("Настройки")}><Settings2 size={18} /><span>Настройки</span></button>
           <div className="profile-row">
             <div className="profile-avatar">П</div>
             <div className="profile-copy"><strong>{user.email}</strong><span>Личный аккаунт</span></div>
