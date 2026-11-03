@@ -19,7 +19,7 @@ from app.auth.security import (
     generate_refresh_token,
     hash_password,
     hash_refresh_token,
-    verify_password,
+    verify_password_and_update,
     verify_unknown_user_password,
 )
 from app.core.config import get_settings
@@ -90,11 +90,18 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse
             detail="Email or password is incorrect.",
         )
 
-    if not verify_password(payload.password, user.password_hash) or not user.is_active:
+    password_is_valid, upgraded_hash = verify_password_and_update(
+        payload.password,
+        user.password_hash,
+    )
+    if not password_is_valid or not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Email or password is incorrect.",
         )
+
+    if upgraded_hash is not None:
+        user.password_hash = upgraded_hash
 
     return _issue_tokens(db, user)
 
