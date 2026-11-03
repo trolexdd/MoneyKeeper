@@ -4,7 +4,7 @@ import {
   CarFront, ChevronDown, CircleHelp, Coffee, CreditCard, Download, Ellipsis,
   FileText, House, LayoutDashboard, LogOut, Plus, Search, Settings2, ShoppingBag,
   SlidersHorizontal, Sparkles, Wallet, X, Trash2, ChevronLeft, ChevronRight,
-  Pencil, CircleAlert, CheckCircle2, CalendarDays
+  Pencil, CircleAlert, CheckCircle2, CalendarDays, Target
 } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import AuthPage from "./AuthPage";
