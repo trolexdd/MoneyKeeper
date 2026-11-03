@@ -23,6 +23,19 @@
 - /auth/me проверяет не только JWT, но и активность сессии в PostgreSQL.
 - Для logout передаётся JSON body: {"refresh_token":"..."}.
 
+## Telegram Mini App authentication
+
+Все пути ниже имеют префикс /api/v1.
+
+| Method | Path | Назначение |
+|---|---|---|
+| POST | /auth/telegram | Проверить initData и выдать сессию уже привязанному Telegram-пользователю |
+| POST | /auth/telegram/link | Проверить initData и email/пароль, затем привязать Telegram к существующему аккаунту |
+
+Клиент передаёт только сырую строку `Telegram.WebApp.initData`. `initDataUnsafe` не используется для авторизации. Backend проверяет HMAC-SHA-256 подпись с `TELEGRAM_BOT_TOKEN`, поле `auth_date` и максимальный возраст данных (по умолчанию 3600 секунд).
+
+Новый Telegram ID не создаёт отдельный профиль автоматически: пользователь один раз подтверждает существующий MoneyKeeper-аккаунт по email и паролю. Telegram ID уникален в базе. Один Telegram-аккаунт нельзя привязать к двум профилям, а профиль с уже привязанным другим Telegram ID нельзя незаметно переназначить. После привязки обычный вход по email продолжает работать.
+
 ## Transactions
 
 Все пути ниже имеют префикс /api/v1. Все endpoints требуют Bearer access token.
