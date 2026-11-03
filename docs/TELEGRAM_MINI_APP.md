@@ -17,6 +17,7 @@
    ```dotenv
    TELEGRAM_BOT_TOKEN=<secret-token-from-botfather>
    TELEGRAM_INIT_DATA_MAX_AGE_SECONDS=3600
+TELEGRAM_PROXY_URL=http://127.0.0.1:12334
    ```
 3. Не добавлять token в frontend-переменные, Git, логи или сообщения.
 4. Для production развернуть frontend на публичном HTTPS URL, например `https://app.example.com`.
@@ -34,7 +35,7 @@
 python -m app.bot.main
 ```
 
-Процесс использует `TELEGRAM_BOT_TOKEN` из корневого `.env`. При пустом `TELEGRAM_MINI_APP_URL` бот регистрирует команды и отвечает на `/start`, `/app` и `/help`, но не показывает неработающую кнопку Mini App. После настройки публичного HTTPS URL добавьте его в `TELEGRAM_MINI_APP_URL` и перезапустите бота. Не запускайте несколько polling-процессов с одним bot token.
+Процесс использует `TELEGRAM_BOT_TOKEN` из корневого `.env`. При пустом `TELEGRAM_MINI_APP_URL` бот регистрирует команды и отвечает на `/start`, `/app` и `/help`, но не показывает неработающую кнопку Mini App. После настройки публичного HTTPS URL добавьте его в `TELEGRAM_MINI_APP_URL` и перезапустите бота. Не запускайте несколько polling-процессов с одним bot token. Если Telegram Bot API доступен только через локальный VPN-прокси, задайте `TELEGRAM_PROXY_URL`, например `http://127.0.0.1:12334` для проверенного Hiddify Mixed Port. Если прямой доступ работает, оставьте переменную пустой. Для проксирования aiogram использует `AiohttpSession`; `aiohttp-socks` установлена как зависимость backend.
 
 ## Первый запуск пользователем
 
