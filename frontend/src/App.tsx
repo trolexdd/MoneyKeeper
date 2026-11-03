@@ -1,11 +1,13 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
   Activity, ArrowDownLeft, ArrowDownRight, ArrowUpRight, Bell, BriefcaseBusiness,
   CarFront, ChevronDown, CircleHelp, Coffee, CreditCard, Download, Ellipsis,
-  FileText, House, LayoutDashboard, Plus, Search, Settings2, ShoppingBag,
+  FileText, House, LayoutDashboard, LogOut, Plus, Search, Settings2, ShoppingBag,
   SlidersHorizontal, Sparkles, Utensils, Wallet, X
 } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis } from "recharts";
+import AuthPage from "./AuthPage";
+import { authApi, clearSession, restoreSession, saveSession, signOut, type User } from "./lib/auth";
 
 type Period = "Week" | "Month" | "Year";
 type Transaction = {
@@ -79,6 +81,32 @@ export default function App() {
   const [formName, setFormName] = useState("");
   const [formAmount, setFormAmount] = useState("");
   const [formType, setFormType] = useState<"expense" | "income">("expense");
+
+  useEffect(() => {
+    let active = true;
+    restoreSession()
+      .then((restoredUser) => { if (active) setUser(restoredUser); })
+      .finally(() => { if (active) setAuthLoading(false); });
+    return () => { active = false; };
+  }, []);
+
+  async function handleLogin(email: string, password: string) {
+    const session = await authApi.login({ email, password });
+    saveSession(session);
+    setUser(session.user);
+  }
+
+  async function handleRegister(email: string, password: string) {
+    const session = await authApi.register({ email, password });
+    saveSession(session);
+    setUser(session.user);
+  }
+
+  async function handleLogout() {
+    await signOut();
+    clearSession();
+    setUser(null);
+  }
 
   const visibleTransactions = useMemo(
     () => transactions.filter((item) => (item.name + " " + item.category).toLowerCase().includes(query.toLowerCase())),
