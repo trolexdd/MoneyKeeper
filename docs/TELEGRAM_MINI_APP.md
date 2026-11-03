@@ -18,9 +18,9 @@
    TELEGRAM_INIT_DATA_MAX_AGE_SECONDS=3600
    ```
 3. Не добавлять token в frontend-переменные, Git, логи или сообщения.
-4. Развернуть frontend на публичном HTTPS URL, например `https://app.example.com`.
+4. Для production развернуть frontend на публичном HTTPS URL, например `https://app.example.com`.
 5. Развернуть backend на публичном HTTPS URL, например `https://api.example.com`.
-6. При сборке frontend задать `VITE_API_URL=https://api.example.com`.
+6. При сборке frontend задать `VITE_API_URL=https://api.example.com`. Если frontend и API публикуются на одном origin через reverse proxy, переменную можно не задавать.
 7. В backend `CORS_ORIGINS` разрешить точный frontend origin, например `https://app.example.com`.
 8. В `@BotFather` открыть настройки бота и включить Main Mini App с frontend HTTPS URL. Альтернативно настроить Menu Button и задать URL приложения.
 
@@ -34,9 +34,19 @@
 
 Обычный вход MoneyKeeper по email в браузере остаётся доступен.
 
-## Локальная разработка
+## Локальная разработка и временный HTTPS-туннель
 
-Обычный Vite URL `http://localhost:5173` подходит для проверки web-версии, но сам по себе не является production Telegram Mini App URL. Для полноценного теста внутри Telegram нужен доступный Telegram клиенту HTTPS URL и корректно настроенный BotFather URL.
+Для тестирования Mini App с одного компьютера можно публиковать только Vite frontend. Vite проксирует все запросы `/api` на локальный FastAPI backend, поэтому отдельный туннель для backend и настройка CORS для этого локального сценария не нужны.
+
+1. Применить миграции: `alembic upgrade head`.
+2. Запустить backend на `127.0.0.1:8000`.
+3. Запустить frontend через `npm run dev` на `127.0.0.1:5173`.
+4. Убедиться, что frontend использует same-origin API. По умолчанию `VITE_API_URL` не задан, а `frontend/vite.config.ts` проксирует `/api` на `http://127.0.0.1:8000`.
+5. Запустить Quick Tunnel к Vite: `cloudflared tunnel --protocol http2 --url http://127.0.0.1:5173`.
+6. Проверить HTTPS URL туннеля в обычном браузере и настроить его в `@BotFather` как Main Mini App URL или Menu Button URL.
+7. Для Vite разрешены только хосты домена `.trycloudflare.com`; не открывайте dev server через произвольные публичные домены.
+
+Quick Tunnel имеет временный URL и не гарантирует постоянную доступность. При перезапуске туннеля URL меняется, поэтому нужно обновлять URL в BotFather. Не использовать временный dev-туннель как production-хостинг и тестировать только на вымышленных финансовых данных.
 
 До публикации проверьте:
 - `alembic upgrade head` — применена миграция `0005_add_telegram_identity`;
