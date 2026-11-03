@@ -162,6 +162,7 @@ export default function App() {
   const categoryExpenses = summary?.expenses_by_category ?? [];
   const maxCategoryExpense = Math.max(0, ...categoryExpenses.map((item) => Number(item.amount)));
   const periodName = ({ Week: "неделю", Month: "месяц", Year: "год" })[period];
+  const periodLabel = ({ Week: "НЕДЕЛЮ", Month: "МЕСЯЦ", Year: "ГОД" })[period];
 
   async function addTransaction(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -297,12 +298,12 @@ export default function App() {
               <div className="balance-decoration">₽</div>
             </article>
             <article className="stat-card income-stat">
-              <div className="stat-card-head"><span>ДОХОДЫ · {period.toUpperCase()}</span><span className="stat-icon"><ArrowDownLeft size={17} /></span></div>
+              <div className="stat-card-head"><span>ДОХОДЫ ЗА {periodLabel}</span><span className="stat-icon"><ArrowDownLeft size={17} /></span></div>
               <div className="stat-value">{money(Number(summary?.period_income ?? 0))}</div>
               <div className="stat-foot"><span className="positive-text">Поступления</span><span>за выбранный период</span></div>
             </article>
             <article className="stat-card expense-stat">
-              <div className="stat-card-head"><span>РАСХОДЫ · {period.toUpperCase()}</span><span className="stat-icon expense-icon"><ArrowUpRight size={17} /></span></div>
+              <div className="stat-card-head"><span>РАСХОДЫ ЗА {periodLabel}</span><span className="stat-icon expense-icon"><ArrowUpRight size={17} /></span></div>
               <div className="stat-value">{money(Number(summary?.period_expenses ?? 0))}</div>
               <div className="stat-foot"><span className="positive-text">Списания</span><span>за выбранный период</span></div>
             </article>
