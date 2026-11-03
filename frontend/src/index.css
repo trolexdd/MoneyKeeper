@@ -817,3 +817,22 @@ h1, h2, p { margin-top: 0; }
   .budget-card { padding: 16px; }
   .budget-empty { padding: 25px 18px; }
 }
+
+
+/* Telegram Mini App viewport and safe areas */
+@supports (padding: max(0px)) {
+  .app-shell {
+    min-height: var(--tg-viewport-stable-height, 100vh);
+  }
+  .mobile-nav {
+    padding-bottom: calc(
+      8px + env(safe-area-inset-bottom, 0px) +
+      var(--tg-content-safe-area-inset-bottom, 0px)
+    );
+  }
+  .auth-screen {
+    min-height: var(--tg-viewport-stable-height, 100vh);
+    padding-top: max(42px, var(--tg-content-safe-area-inset-top, 0px));
+    padding-bottom: max(75px, var(--tg-content-safe-area-inset-bottom, 0px));
+  }
+}
