@@ -28,7 +28,8 @@ def create_router(mini_app_url: str | None) -> Router:
     async def app_handler(message: Message) -> None:
         if not mini_app_url:
             await message.answer(
-                "Mini App пока не опубликовано. Кнопка запуска появится после настройки HTTPS-адреса."
+                "Mini App пока не опубликовано. "
+                "Кнопка запуска появится после настройки HTTPS-адреса."
             )
             return
 
