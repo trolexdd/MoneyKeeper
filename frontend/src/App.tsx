@@ -452,20 +452,23 @@ export default function App() {
     setBudgetSaving(true);
     setBudgetModalError("");
     try {
-      if (editingBudget) {
-        await budgetsApi.update(editingBudget.id, { limit_amount: budgetAmount });
-      } else {
-        await budgetsApi.create({
-          category: budgetCategory,
-          limit_amount: budgetAmount,
-          year: budgetYear,
-          month: budgetMonthNumber
-        });
-      }
-      const refreshed = await budgetsApi.list(budgetYear, budgetMonthNumber);
-      setBudgets(refreshed);
+      const savedBudget = editingBudget
+        ? await budgetsApi.update(editingBudget.id, { limit_amount: budgetAmount })
+        : await budgetsApi.create({
+            category: budgetCategory,
+            limit_amount: budgetAmount,
+            year: budgetYear,
+            month: budgetMonthNumber
+          });
+      setBudgets((current) => {
+        const next = editingBudget
+          ? current.map((item) => item.id === savedBudget.id ? savedBudget : item)
+          : [...current, savedBudget];
+        return next.sort((left, right) => left.category.localeCompare(right.category, "ru"));
+      });
       setShowBudgetModal(false);
     } catch (error) {
+      if (error instanceof Error && error.message.includes("Сессия истекла")) setUser(null);
       setBudgetModalError(error instanceof Error ? error.message : "Не удалось сохранить бюджет.");
     } finally {
       setBudgetSaving(false);
