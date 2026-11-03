@@ -79,6 +79,9 @@ def validate_telegram_init_data(
     except (KeyError, TypeError, json.JSONDecodeError):
         raise TelegramInitDataError("Telegram user data is missing or invalid.") from None
 
+    if not isinstance(user_data, dict):
+        raise TelegramInitDataError("Telegram user data is invalid.")
+
     if (
         isinstance(telegram_user_id, bool)
         or not isinstance(telegram_user_id, int)
