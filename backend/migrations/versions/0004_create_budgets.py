@@ -14,7 +14,7 @@ from sqlalchemy.dialects import postgresql
 revision: str = "0004_create_budgets"
 down_revision: str | None = "0003_create_transactions"
 branch_labels: str | Sequence[str] | None = None
-depends_on: Union[str, Sequence[str], None] = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
