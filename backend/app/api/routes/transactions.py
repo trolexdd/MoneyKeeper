@@ -1,9 +1,9 @@
+import calendar
 from collections import defaultdict
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from typing import Literal
 from uuid import UUID
-import calendar
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import func, select
@@ -69,7 +69,11 @@ def create_transaction(
     return transaction
 
 
-@router.delete("/{transaction_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete a transaction")
+@router.delete(
+    "/{transaction_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a transaction",
+)
 def delete_transaction(
     transaction_id: UUID,
     user: User = Depends(get_current_user),
