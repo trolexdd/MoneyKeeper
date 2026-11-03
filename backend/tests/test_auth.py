@@ -14,6 +14,7 @@ from app.core.config import get_settings
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
+from app.models import User
 
 
 @pytest.fixture
@@ -148,8 +149,6 @@ def test_new_hash_uses_tuned_argon2id_parameters() -> None:
 
 
 def test_successful_login_upgrades_legacy_argon2_hash(client: TestClient) -> None:
-    from app.models import User
-
     password = "a-strong-password-123"
     registration = client.post(
         "/api/v1/auth/register",
