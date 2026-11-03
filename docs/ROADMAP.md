@@ -27,9 +27,9 @@
 
 ## Phase 4 — Telegram
 - [ ] Отдельный aiogram bot process.
-- [ ] Безопасная привязка Telegram.
+- [x] Безопасная привязка Telegram к существующему аккаунту и вход по initData.
 - [ ] Команды и быстрый ввод операций.
-- [ ] Mini App с проверкой initData.
+- [ ] Публикация Mini App по HTTPS и настройка Main Mini App/Menu Button в BotFather (клиент и проверка initData уже добавлены).
 - [ ] Worker и идемпотентные напоминания.
 
 ## Phase 5 — AI and collaboration
