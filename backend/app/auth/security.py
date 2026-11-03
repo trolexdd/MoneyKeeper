@@ -5,10 +5,15 @@ from uuid import UUID
 
 import jwt
 from pwdlib import PasswordHash
+from pwdlib.hashers.argon2 import Argon2Hasher
 
 from app.core.config import get_settings
 
-_password_hash = PasswordHash.recommended()
+# OWASP Argon2id baseline: 19 MiB memory, 2 passes, 1 lane.
+# Stored hashes retain their own parameters and are upgraded after successful login.
+_password_hash = PasswordHash(
+    (Argon2Hasher(time_cost=2, memory_cost=19_456, parallelism=1),)
+)
 _dummy_password_hash = _password_hash.hash("not-a-real-user-password")
 
 
@@ -18,6 +23,13 @@ def hash_password(password: str) -> str:
 
 def verify_password(password: str, password_hash: str) -> bool:
     return _password_hash.verify(password, password_hash)
+
+
+def verify_password_and_update(
+    password: str,
+    password_hash: str,
+) -> tuple[bool, str | None]:
+    return _password_hash.verify_and_update(password, password_hash)
 
 
 def verify_unknown_user_password(password: str) -> None:
