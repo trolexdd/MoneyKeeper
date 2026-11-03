@@ -8,6 +8,7 @@
 - Уже привязанный Telegram ID получает обычную MoneyKeeper access/refresh session.
 - Для первого входа пользователь подтверждает существующий аккаунт MoneyKeeper по email и паролю. Данные остаются в том же профиле; новый финансовый профиль не создаётся.
 - Один Telegram ID может быть связан только с одним MoneyKeeper аккаунтом.
+- Отдельный процесс aiogram 3 регистрирует команды `/start`, `/app`, `/help` и настраивает menu button через Bot API.
 
 ## Настройка бота
 
@@ -22,7 +23,18 @@
 5. Развернуть backend на публичном HTTPS URL, например `https://api.example.com`.
 6. При сборке frontend задать `VITE_API_URL=https://api.example.com`. Если frontend и API публикуются на одном origin через reverse proxy, переменную можно не задавать.
 7. В backend `CORS_ORIGINS` разрешить точный frontend origin, например `https://app.example.com`.
-8. В `@BotFather` открыть настройки бота и включить Main Mini App с frontend HTTPS URL. Альтернативно настроить Menu Button и задать URL приложения.
+8. Указать `TELEGRAM_MINI_APP_URL=https://app.example.com` в backend `.env`. При запуске bot process он сам установит Menu Button через `setChatMenuButton`. Для дополнительной кнопки Mini App в профиле бота можно отдельно включить Main Mini App через `@BotFather`.
+
+## Запуск Telegram-бота
+
+Бот работает отдельным процессом и не встраивается в FastAPI. Установите зависимости командой `python -m pip install -e ".[dev]"`, затем из каталога `backend/` выполните:
+
+```cmd
+.venv\\Scripts\\activate.bat
+python -m app.bot.main
+```
+
+Процесс использует `TELEGRAM_BOT_TOKEN` из корневого `.env`. При пустом `TELEGRAM_MINI_APP_URL` бот регистрирует команды и отвечает на `/start`, `/app` и `/help`, но не показывает неработающую кнопку Mini App. После настройки публичного HTTPS URL добавьте его в `TELEGRAM_MINI_APP_URL` и перезапустите бота. Не запускайте несколько polling-процессов с одним bot token.
 
 ## Первый запуск пользователем
 
