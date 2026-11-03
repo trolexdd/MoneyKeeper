@@ -288,7 +288,7 @@ export default function App() {
   const [budgetError, setBudgetError] = useState("");
   const [budgetMonth, setBudgetMonth] = useState(() => {
     const today = new Date();
-    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+    return `${today.getUTCFullYear()}-${String(today.getUTCMonth() + 1).padStart(2, "0")}`;
   });
   const [showBudgetModal, setShowBudgetModal] = useState(false);
   const [editingBudget, setEditingBudget] = useState<BudgetRecord | null>(null);
@@ -349,6 +349,7 @@ export default function App() {
     let active = true;
     const [year, month] = budgetMonth.split("-").map(Number);
     setBudgetLoading(true);
+    setBudgets([]);
     setBudgetError("");
 
     budgetsApi.list(year, month)
@@ -804,7 +805,7 @@ export default function App() {
                             <span className={"budget-category-icon " + color}>₽</span>
                             <div>
                               <strong>{budget.category}</strong>
-                              <span>{over ? "Лимит превышен" : warning ? "Почти исчерпан" : "В пределах лимита"}</span>
+                              <span>{over ? "Лимит превышен" : warning && usage >= 100 ? "Лимит использован" : warning ? "Почти исчерпан" : "В пределах лимита"}</span>
                             </div>
                           </div>
                           <div className="budget-card-actions">
@@ -835,7 +836,7 @@ export default function App() {
                           <div className="budget-alert over-alert"><CircleAlert size={14} /> Превышен лимит на {money(Math.abs(Number(budget.remaining_amount)))}</div>
                         )}
                         {warning && (
-                          <div className="budget-alert warning-alert"><CircleAlert size={14} /> Использовано больше 80% лимита</div>
+                          <div className="budget-alert warning-alert"><CircleAlert size={14} /> {usage >= 100 ? "Весь лимит уже использован" : "Использовано больше 80% лимита"}</div>
                         )}
                       </article>
                     );
