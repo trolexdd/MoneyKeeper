@@ -500,6 +500,9 @@ export default function App() {
             onClick={() => setActiveNav(label)}
           >
             <Icon size={19} strokeWidth={1.8} />
+            <span className="mobile-nav-label">
+              {label === "Умная аналитика" ? "Аналитика" : label === "Настройки" ? "Профиль" : label}
+            </span>
             {label === "Операции" && transactions.length > 0 && <span className="mobile-nav-count">{transactions.length}</span>}
           </button>
         ))}
