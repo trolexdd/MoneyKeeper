@@ -277,7 +277,7 @@ export default function App() {
             <div className="modal-heading"><div><span className="panel-kicker">БЫСТРОЕ ДОБАВЛЕНИЕ</span><h2>Добавить операцию</h2></div><button type="button" className="icon-button" aria-label="Закрыть" onClick={() => setShowModal(false)}><X size={19} /></button></div>
             <div className="type-toggle"><button type="button" className={formType === "expense" ? "active expense-choice" : ""} onClick={() => setFormType("expense")}>Расход</button><button type="button" className={formType === "income" ? "active income-choice" : ""} onClick={() => setFormType("income")}>Доход</button></div>
             <label className="form-label">ОПИСАНИЕ<input autoFocus value={formName} onChange={(event) => setFormName(event.target.value)} placeholder="Например, продукты" required /></label>
-            <label className="form-label">СУММА (₽)<input type="number" min="0.01" step="0.01" value={formAmount} onChange={(event) => setFormAmount(event.target.value)} placeholder="0,00" required /></label>
+            <label className="form-label">СУММА (₽)<input type="number" min="0.01" step="0.01" value={formAmount} onChange={(event) => setFormAmount(event.target.value)} placeholder="0.00" required /></label>
             <button className="primary-button modal-submit" type="submit"><Plus size={16} /> Сохранить операцию</button>
             <p className="modal-hint">Демо-режим · Операция хранится только в текущем сеансе браузера.</p>
           </form>
