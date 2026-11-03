@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     access_token_minutes: int = 15
     refresh_token_days: int = 30
     telegram_bot_token: str = ""
+    telegram_mini_app_url: str = ""
     telegram_init_data_max_age_seconds: int = 3600
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
