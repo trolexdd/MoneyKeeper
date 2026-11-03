@@ -1,4 +1,9 @@
 from collections.abc import Generator
+import hashlib
+import hmac
+import json
+import time
+from urllib.parse import urlencode
 
 import pytest
 from fastapi.testclient import TestClient
@@ -22,6 +27,8 @@ def client(monkeypatch: pytest.MonkeyPatch) -> Generator[TestClient, None, None]
     monkeypatch.setenv("APP_SECRET_KEY", "test-secret-key-with-at-least-thirty-two-characters")
     monkeypatch.setenv("ACCESS_TOKEN_MINUTES", "15")
     monkeypatch.setenv("REFRESH_TOKEN_DAYS", "30")
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "123456789:telegram-test-token-for-unit-tests")
+    monkeypatch.setenv("TELEGRAM_INIT_DATA_MAX_AGE_SECONDS", "3600")
     get_settings.cache_clear()
 
     engine = create_engine(
@@ -182,3 +189,151 @@ def test_successful_login_upgrades_legacy_argon2_hash(client: TestClient) -> Non
         assert "m=19456,t=2,p=1" in user.password_hash
     finally:
         db_generator.close()
+
+
+
+TELEGRAM_TEST_TOKEN = "123456789:telegram-test-token-for-unit-tests"
+
+
+def build_telegram_init_data(
+    telegram_user_id: int,
+    *,
+    username: str = "moneykeeper_test",
+    auth_date: int | None = None,
+) -> str:
+    fields = {
+        "auth_date": str(auth_date if auth_date is not None else int(time.time())),
+        "query_id": "AAEAAAE",
+        "user": json.dumps(
+            {
+                "id": telegram_user_id,
+                "first_name": "MoneyKeeper",
+                "username": username,
+            },
+            separators=(",", ":"),
+        ),
+    }
+    data_check_string = "\n".join(
+        f"{key}={value}" for key, value in sorted(fields.items())
+    )
+    secret_key = hmac.new(
+        b"WebAppData",
+        TELEGRAM_TEST_TOKEN.encode("utf-8"),
+        hashlib.sha256,
+    ).digest()
+    fields["hash"] = hmac.new(
+        secret_key,
+        data_check_string.encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+    return urlencode(fields)
+
+
+def test_telegram_account_can_be_linked_and_used_for_future_login(
+    client: TestClient,
+) -> None:
+    registration = client.post(
+        "/api/v1/auth/register",
+        json={"email": "telegram-link@example.com", "password": "a-strong-password-123"},
+    )
+    assert registration.status_code == 201
+    existing_user_id = registration.json()["user"]["id"]
+    init_data = build_telegram_init_data(987654321, username="mk_user")
+
+    not_linked = client.post(
+        "/api/v1/auth/telegram",
+        json={"init_data": init_data},
+    )
+    assert not_linked.status_code == 404
+
+    linked = client.post(
+        "/api/v1/auth/telegram/link",
+        json={
+            "init_data": init_data,
+            "email": "telegram-link@example.com",
+            "password": "a-strong-password-123",
+        },
+    )
+    assert linked.status_code == 200
+    assert linked.json()["user"]["id"] == existing_user_id
+
+    telegram_login = client.post(
+        "/api/v1/auth/telegram",
+        json={"init_data": init_data},
+    )
+    assert telegram_login.status_code == 200
+    assert telegram_login.json()["user"]["id"] == existing_user_id
+
+    db_generator = app.dependency_overrides[get_db]()
+    db = next(db_generator)
+    try:
+        user = db.scalar(select(User).where(User.email == "telegram-link@example.com"))
+        assert user is not None
+        assert user.telegram_id == 987654321
+        assert user.telegram_username == "mk_user"
+    finally:
+        db_generator.close()
+
+
+def test_telegram_identity_cannot_be_linked_to_two_accounts(client: TestClient) -> None:
+    first = client.post(
+        "/api/v1/auth/register",
+        json={"email": "telegram-first@example.com", "password": "a-strong-password-123"},
+    )
+    second = client.post(
+        "/api/v1/auth/register",
+        json={"email": "telegram-second@example.com", "password": "a-strong-password-123"},
+    )
+    assert first.status_code == 201
+    assert second.status_code == 201
+    init_data = build_telegram_init_data(987654322)
+
+    linked = client.post(
+        "/api/v1/auth/telegram/link",
+        json={
+            "init_data": init_data,
+            "email": "telegram-first@example.com",
+            "password": "a-strong-password-123",
+        },
+    )
+    assert linked.status_code == 200
+
+    conflict = client.post(
+        "/api/v1/auth/telegram/link",
+        json={
+            "init_data": init_data,
+            "email": "telegram-second@example.com",
+            "password": "a-strong-password-123",
+        },
+    )
+    assert conflict.status_code == 409
+
+
+def test_telegram_init_data_signature_and_freshness_are_required(
+    client: TestClient,
+) -> None:
+    registration = client.post(
+        "/api/v1/auth/register",
+        json={"email": "telegram-invalid@example.com", "password": "a-strong-password-123"},
+    )
+    assert registration.status_code == 201
+
+    invalid_signature = client.post(
+        "/api/v1/auth/telegram/link",
+        json={
+            "init_data": "auth_date=1&user=%7B%7D&hash=" + ("0" * 64),
+            "email": "telegram-invalid@example.com",
+            "password": "a-strong-password-123",
+        },
+    )
+    assert invalid_signature.status_code == 401
+
+    stale_init_data = build_telegram_init_data(
+        987654323,
+        auth_date=int(time.time()) - 7200,
+    )
+    stale = client.post(
+        "/api/v1/auth/telegram",
+        json={"init_data": stale_init_data},
+    )
+    assert stale.status_code == 401
