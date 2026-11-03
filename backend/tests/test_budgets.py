@@ -230,3 +230,56 @@ def test_budget_validation_and_missing_auth(client: TestClient) -> None:
         headers=headers(session),
     )
     assert invalid_month.status_code == 422
+
+
+
+def test_budget_spending_uses_only_expenses_inside_selected_month(
+    client: TestClient,
+) -> None:
+    from datetime import timedelta
+
+    session = register(client, "budget-period@example.com")
+    auth = headers(session)
+    year, month = current_period()
+    previous_month = datetime(year, month, 1, tzinfo=UTC) - timedelta(days=1)
+
+    old_expense = client.post(
+        "/api/v1/transactions",
+        headers=auth,
+        json={
+            "type": "expense",
+            "amount": "90.00",
+            "category": "Продукты",
+            "description": "Расход прошлого месяца",
+            "occurred_at": previous_month.isoformat(),
+        },
+    )
+    assert old_expense.status_code == 201
+
+    current_income = client.post(
+        "/api/v1/transactions",
+        headers=auth,
+        json={
+            "type": "income",
+            "amount": "500.00",
+            "category": "Продукты",
+            "description": "Доход, не расход",
+            "occurred_at": datetime.now(UTC).isoformat(),
+        },
+    )
+    assert current_income.status_code == 201
+
+    budget = client.post(
+        "/api/v1/budgets",
+        headers=auth,
+        json={
+            "category": "Продукты",
+            "limit_amount": "100.00",
+            "year": year,
+            "month": month,
+        },
+    )
+    assert budget.status_code == 201
+    assert budget.json()["spent_amount"] == "0.00"
+    assert budget.json()["remaining_amount"] == "100.00"
+    assert budget.json()["usage_percent"] == "0.0"
