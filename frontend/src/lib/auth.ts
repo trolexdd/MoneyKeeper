@@ -17,6 +17,8 @@ export type AuthSession = {
 
 type Credentials = { email: string; password: string };
 
+let telegramLoginInFlight: Promise<AuthSession> | null = null;
+
 export class ApiError extends Error {
   constructor(message: string, readonly status: number) {
     super(message);
@@ -67,11 +69,17 @@ export const authApi = {
       body: JSON.stringify(credentials),
     }),
 
-  telegramLogin: (initData: string) =>
-    request<AuthSession>("/api/v1/auth/telegram", {
-      method: "POST",
-      body: JSON.stringify({ init_data: initData }),
-    }),
+  telegramLogin: (initData: string) => {
+    if (!telegramLoginInFlight) {
+      telegramLoginInFlight = request<AuthSession>("/api/v1/auth/telegram", {
+        method: "POST",
+        body: JSON.stringify({ init_data: initData }),
+      }).finally(() => {
+        telegramLoginInFlight = null;
+      });
+    }
+    return telegramLoginInFlight;
+  },
 
   telegramLink: (initData: string, credentials: Credentials) =>
     request<AuthSession>("/api/v1/auth/telegram/link", {
