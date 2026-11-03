@@ -17,6 +17,12 @@ export type AuthSession = {
 
 type Credentials = { email: string; password: string };
 
+class ApiError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+  }
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   let response: Response;
   try {
@@ -41,7 +47,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     } catch {
       // Keep the generic message when the response is not JSON.
     }
-    throw new Error(message);
+    throw new ApiError(message, response.status);
   }
 
   if (response.status === 204) return undefined as T;
@@ -119,6 +125,46 @@ export async function signOut() {
       await authApi.logout(refreshToken);
     } catch {
       // Local session is cleared even if the API is temporarily unavailable.
+    }
+  }
+}
+
+
+export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const accessToken = sessionStorage.getItem(ACCESS_KEY);
+  if (!accessToken) {
+    throw new Error("Сессия не найдена. Войдите в аккаунт ещё раз.");
+  }
+
+  const send = (token: string) =>
+    request<T>(path, {
+      ...init,
+      headers: {
+        ...init.headers,
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+  try {
+    return await send(accessToken);
+  } catch (error) {
+    if (!(error instanceof ApiError) || error.status !== 401) {
+      throw error;
+    }
+
+    const refreshToken = sessionStorage.getItem(REFRESH_KEY);
+    if (!refreshToken) {
+      clearSession();
+      throw new Error("Сессия истекла. Войдите в аккаунт ещё раз.");
+    }
+
+    try {
+      const refreshed = await authApi.refresh(refreshToken);
+      saveSession(refreshed);
+      return await send(refreshed.access_token);
+    } catch {
+      clearSession();
+      throw new Error("Сессия истекла. Войдите в аккаунт ещё раз.");
     }
   }
 }
