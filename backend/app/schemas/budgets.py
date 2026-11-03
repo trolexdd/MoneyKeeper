@@ -1,4 +1,3 @@
-from datetime import UTC
 from decimal import Decimal
 from uuid import UUID
 
