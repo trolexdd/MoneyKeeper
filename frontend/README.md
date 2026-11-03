@@ -28,9 +28,11 @@ The frontend supports registration, login, current-user loading, refresh-token r
 
 The current development client stores tokens in `sessionStorage`, so the session is cleared when the browser tab is closed. This is a development-stage approach; before production, move refresh-token handling to Secure, HttpOnly, SameSite cookies and add a production CORS allowlist.
 
-## Current scope
+## Transactions and dashboard data
 
-Dashboard balances, budgets, chart data, and sample transactions are still illustrative. The add-transaction modal currently changes only React state and does not persist data. Financial accounts, transactions, and analytics API endpoints are the next backend milestone.
+The dashboard reads transaction records and summary data from the authenticated API. Create and delete operations are persisted in PostgreSQL and scoped to the signed-in user. The balance card shows the lifetime balance; the income, expense, chart, and category breakdown follow the selected week/month/year period. Currency is RUB in this first ledger iteration.
+
+Budgets, bank accounts, cards, exports, and editing an existing transaction are not implemented yet. Tokens are held in `sessionStorage` for local development; before production, move refresh-token handling to Secure, HttpOnly, SameSite cookies and configure a production CORS allowlist.
 
 ## Production build
 
