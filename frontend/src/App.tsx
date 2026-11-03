@@ -256,6 +256,13 @@ const navItems = [
   { label: "Карты", icon: CreditCard }
 ];
 
+const mobileNavItems = [
+  ...navItems,
+  { label: "Умная аналитика", icon: Sparkles },
+  { label: "Отчёты", icon: FileText },
+  { label: "Настройки", icon: Settings2 }
+];
+
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -454,7 +461,7 @@ export default function App() {
         <div className="nav-label">РАБОЧЕЕ ПРОСТРАНСТВО</div>
         <nav className="main-nav" aria-label="Основная навигация">
           {navItems.map(({ label, icon: Icon }) => (
-            <button key={label} className={"nav-link " + (activeNav === label ? "active" : "")} onClick={() => setActiveNav(label)}>
+            <button key={label} title={label} aria-label={label} className={"nav-link " + (activeNav === label ? "active" : "")} onClick={() => setActiveNav(label)}>
               <Icon size={18} strokeWidth={1.8} /><span>{label}</span>
               {label === "Операции" && <span className="nav-count">{transactions.length}</span>}
             </button>
@@ -481,6 +488,22 @@ export default function App() {
           </div>
         </div>
       </aside>
+
+      <nav className="mobile-nav" aria-label="Мобильная навигация">
+        {mobileNavItems.map(({ label, icon: Icon }) => (
+          <button
+            key={label}
+            type="button"
+            title={label}
+            aria-label={label}
+            className={activeNav === label ? "active" : ""}
+            onClick={() => setActiveNav(label)}
+          >
+            <Icon size={19} strokeWidth={1.8} />
+            {label === "Операции" && transactions.length > 0 && <span className="mobile-nav-count">{transactions.length}</span>}
+          </button>
+        ))}
+      </nav>
 
       <main className="main-content">
         <header className="topbar">
