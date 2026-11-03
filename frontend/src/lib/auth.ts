@@ -158,13 +158,14 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
       throw new Error("Сессия истекла. Войдите в аккаунт ещё раз.");
     }
 
+    let refreshed: AuthSession;
     try {
-      const refreshed = await authApi.refresh(refreshToken);
-      saveSession(refreshed);
-      return await send(refreshed.access_token);
+      refreshed = await authApi.refresh(refreshToken);
     } catch {
       clearSession();
       throw new Error("Сессия истекла. Войдите в аккаунт ещё раз.");
     }
+    saveSession(refreshed);
+    return send(refreshed.access_token);
   }
 }
