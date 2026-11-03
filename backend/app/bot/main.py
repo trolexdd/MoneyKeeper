@@ -1,6 +1,7 @@
 import asyncio
 
 from aiogram import Bot, Dispatcher
+from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.types import BotCommand, MenuButtonCommands, MenuButtonWebApp, WebAppInfo
 
 from app.bot.keyboards import normalize_mini_app_url
@@ -34,7 +35,9 @@ async def main() -> None:
         raise RuntimeError("Set TELEGRAM_BOT_TOKEN in the repository-root .env file")
 
     mini_app_url = normalize_mini_app_url(settings.telegram_mini_app_url)
-    bot = Bot(token=settings.telegram_bot_token)
+    proxy_url = settings.telegram_proxy_url.strip() or None
+    session = AiohttpSession(proxy=proxy_url)
+    bot = Bot(token=settings.telegram_bot_token, session=session)
     dispatcher = Dispatcher()
     dispatcher.include_router(create_router(mini_app_url))
 
