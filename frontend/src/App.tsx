@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
-  Activity, ArrowDownLeft, ArrowDownRight, ArrowUpRight, Bell, BriefcaseBusiness,
+  Activity, ArrowDownLeft, ArrowUpRight, Bell, BriefcaseBusiness,
   CarFront, ChevronDown, CircleHelp, Coffee, CreditCard, Download, Ellipsis,
   FileText, House, LayoutDashboard, LogOut, Plus, Search, Settings2, ShoppingBag,
-  SlidersHorizontal, Sparkles, Utensils, Wallet, X, Trash2
+  SlidersHorizontal, Sparkles, Wallet, X, Trash2
 } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import AuthPage from "./AuthPage";
@@ -66,16 +66,6 @@ const navItems = [
   { label: "Бюджеты", icon: SlidersHorizontal },
   { label: "Карты", icon: CreditCard }
 ];
-
-function money(value: number) {
-  return new Intl.NumberFormat("ru-RU", { style: "currency", currency: "RUB", maximumFractionDigits: 2 }).format(value);
-}
-
-function TransactionIcon({ type }: { type: Transaction["icon"] }) {
-  const icons = { home: House, food: Coffee, shopping: ShoppingBag, transport: CarFront, work: BriefcaseBusiness };
-  const Icon = icons[type];
-  return <Icon size={17} strokeWidth={1.8} />;
-}
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
