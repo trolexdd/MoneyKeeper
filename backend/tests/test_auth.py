@@ -2,17 +2,18 @@ from collections.abc import Generator
 
 import pytest
 from fastapi.testclient import TestClient
+from pwdlib import PasswordHash
 from pwdlib.hashers.argon2 import Argon2Hasher
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app import models  # noqa: F401
+from app.auth.security import hash_password
 from app.core.config import get_settings
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
-from app.auth.security import hash_password, verify_password_and_update
 
 
 @pytest.fixture
@@ -139,7 +140,6 @@ def test_invalid_access_token_is_rejected(client: TestClient) -> None:
     assert response.status_code == 401
 
 
-
 def test_new_hash_uses_tuned_argon2id_parameters() -> None:
     password_hash = hash_password("a-strong-password-123")
 
@@ -148,9 +148,6 @@ def test_new_hash_uses_tuned_argon2id_parameters() -> None:
 
 
 def test_successful_login_upgrades_legacy_argon2_hash(client: TestClient) -> None:
-    from pwdlib import PasswordHash
-    from sqlalchemy import select
-
     from app.models import User
 
     password = "a-strong-password-123"
