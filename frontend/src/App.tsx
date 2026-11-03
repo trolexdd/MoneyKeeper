@@ -3,56 +3,62 @@ import {
   Activity, ArrowDownLeft, ArrowDownRight, ArrowUpRight, Bell, BriefcaseBusiness,
   CarFront, ChevronDown, CircleHelp, Coffee, CreditCard, Download, Ellipsis,
   FileText, House, LayoutDashboard, LogOut, Plus, Search, Settings2, ShoppingBag,
-  SlidersHorizontal, Sparkles, Utensils, Wallet, X
+  SlidersHorizontal, Sparkles, Utensils, Wallet, X, Trash2
 } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import AuthPage from "./AuthPage";
 import { authApi, clearSession, restoreSession, saveSession, signOut, type User } from "./lib/auth";
+import {
+  transactionsApi,
+  type TransactionRecord,
+  type TransactionSummary,
+  type TransactionType,
+  type SummaryPeriod
+} from "./lib/transactions";
 
 type Period = "Week" | "Month" | "Year";
 type Transaction = {
-  id: number; name: string; category: string; date: string; amount: number;
+  id: string;
+  name: string;
+  category: string;
+  date: string;
+  amount: number;
+  type: TransactionType;
   icon: "home" | "food" | "shopping" | "transport" | "work";
 };
 
-const chartSets: Record<Period, { label: string; income: number; expenses: number }[]> = {
-  Week: [
-    { label: "Пн", income: 18000, expenses: 9000 }, { label: "Вт", income: 24000, expenses: 13000 },
-    { label: "Ср", income: 12000, expenses: 16000 }, { label: "Чт", income: 36000, expenses: 11000 },
-    { label: "Пт", income: 28000, expenses: 19000 }, { label: "Сб", income: 9000, expenses: 22000 },
-    { label: "Вс", income: 21000, expenses: 10000 }
-  ],
-  Month: [
-    { label: "01", income: 72000, expenses: 42000 }, { label: "04", income: 98000, expenses: 61000 },
-    { label: "07", income: 84000, expenses: 51000 }, { label: "10", income: 128000, expenses: 74000 },
-    { label: "13", income: 104000, expenses: 69000 }, { label: "16", income: 146000, expenses: 82000 },
-    { label: "19", income: 119000, expenses: 76000 }, { label: "22", income: 171000, expenses: 94000 },
-    { label: "25", income: 149000, expenses: 82000 }, { label: "28", income: 194000, expenses: 108000 },
-    { label: "31", income: 182000, expenses: 92000 }
-  ],
-  Year: [
-    { label: "Янв", income: 410000, expenses: 290000 }, { label: "Фев", income: 450000, expenses: 310000 },
-    { label: "Мар", income: 390000, expenses: 280000 }, { label: "Апр", income: 520000, expenses: 340000 },
-    { label: "Май", income: 490000, expenses: 330000 }, { label: "Июн", income: 580000, expenses: 370000 },
-    { label: "Июл", income: 540000, expenses: 350000 }, { label: "Авг", income: 610000, expenses: 390000 },
-    { label: "Сен", income: 570000, expenses: 360000 }, { label: "Окт", income: 650000, expenses: 410000 },
-    { label: "Ноя", income: 620000, expenses: 390000 }, { label: "Дек", income: 710000, expenses: 430000 }
-  ]
-};
+function money(value: number) {
+  return new Intl.NumberFormat("ru-RU", { style: "currency", currency: "RUB", maximumFractionDigits: 2 }).format(value);
+}
 
-const initialTransactions: Transaction[] = [
-  { id: 1, name: "Покупки в супермаркете", category: "Продукты", date: "Сегодня, 10:42", amount: -8432, icon: "shopping" },
-  { id: 2, name: "Зарплата", category: "Доход", date: "Сегодня, 09:15", amount: 325000, icon: "work" },
-  { id: 3, name: "Кофейня", category: "Кафе", date: "Вчера, 16:28", amount: -1280, icon: "food" },
-  { id: 4, name: "Аренда квартиры", category: "Жильё", date: "Вчера, 09:00", amount: -92000, icon: "home" },
-  { id: 5, name: "Проездной", category: "Транспорт", date: "28 окт., 08:12", amount: -4250, icon: "transport" }
-];
+function dateLabel(value: string) {
+  return new Intl.DateTimeFormat("ru-RU", {
+    day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit"
+  }).format(new Date(value));
+}
 
-const budgets = [
-  { name: "Дом и счета", spent: 92000, total: 120000, color: "lime", icon: House },
-  { name: "Еда и кафе", spent: 38600, total: 55000, color: "cyan", icon: Utensils },
-  { name: "Покупки", spent: 24800, total: 40000, color: "violet", icon: ShoppingBag }
-];
+function mapTransaction(record: TransactionRecord): Transaction {
+  const category = record.category.toLowerCase();
+  let icon: Transaction["icon"] = record.type === "income" ? "work" : "shopping";
+  if (category.includes("жиль") || category.includes("дом")) icon = "home";
+  else if (category.includes("продукт") || category.includes("каф")) icon = "food";
+  else if (category.includes("транспорт")) icon = "transport";
+  return {
+    id: record.id,
+    name: record.description,
+    category: record.category,
+    date: dateLabel(record.occurred_at),
+    amount: Number(record.amount),
+    type: record.type,
+    icon
+  };
+}
+
+function TransactionIcon({ type }: { type: Transaction["icon"] }) {
+  const icons = { home: House, food: Coffee, shopping: ShoppingBag, transport: CarFront, work: BriefcaseBusiness };
+  const Icon = icons[type];
+  return <Icon size={17} strokeWidth={1.8} />;
+}
 
 const navItems = [
   { label: "Обзор", icon: LayoutDashboard },
@@ -76,13 +82,19 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(true);
   const [period, setPeriod] = useState<Period>("Month");
   const [activeNav, setActiveNav] = useState("Обзор");
-  const [transactions, setTransactions] = useState(initialTransactions);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [summary, setSummary] = useState<TransactionSummary | null>(null);
+  const [dataLoading, setDataLoading] = useState(true);
+  const [dataError, setDataError] = useState("");
   const [query, setQuery] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [formName, setFormName] = useState("");
   const [formAmount, setFormAmount] = useState("");
-  const [formType, setFormType] = useState<"expense" | "income">("expense");
+  const [formType, setFormType] = useState<TransactionType>("expense");
+  const [formCategory, setFormCategory] = useState("Продукты");
+  const [formError, setFormError] = useState("");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -91,6 +103,29 @@ export default function App() {
       .finally(() => { if (active) setAuthLoading(false); });
     return () => { active = false; };
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    setDataLoading(true);
+    setDataError("");
+    const selectedPeriod = period.toLowerCase() as SummaryPeriod;
+
+    Promise.all([transactionsApi.list(100), transactionsApi.summary(selectedPeriod)])
+      .then(([records, nextSummary]) => {
+        if (!active) return;
+        setTransactions(records.map(mapTransaction));
+        setSummary(nextSummary);
+      })
+      .catch((error: unknown) => {
+        if (active) setDataError(error instanceof Error ? error.message : "Не удалось загрузить данные.");
+      })
+      .finally(() => {
+        if (active) setDataLoading(false);
+      });
+
+    return () => { active = false; };
+  }, [user, period]);
 
   async function handleLogin(email: string, password: string) {
     const session = await authApi.login({ email, password });
@@ -114,20 +149,57 @@ export default function App() {
     () => transactions.filter((item) => (item.name + " " + item.category).toLowerCase().includes(query.toLowerCase())),
     [transactions, query]
   );
+  const chartData = useMemo(
+    () => summary?.series.map((point) => ({
+      label: point.label,
+      income: Number(point.income),
+      expenses: Number(point.expenses)
+    })) ?? [],
+    [summary]
+  );
+  const categoryExpenses = summary?.expenses_by_category ?? [];
+  const maxCategoryExpense = Math.max(0, ...categoryExpenses.map((item) => Number(item.amount)));
+  const periodName = ({ Week: "неделю", Month: "месяц", Year: "год" })[period];
 
-  function addTransaction(event: FormEvent<HTMLFormElement>) {
+  async function addTransaction(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const amount = Number(formAmount);
-    if (!formName.trim() || !Number.isFinite(amount) || amount <= 0) return;
-    const item: Transaction = {
-      id: Date.now(), name: formName.trim(), category: formType === "income" ? "Доход" : "Другое",
-      date: "Только что", amount: formType === "income" ? amount : -amount,
-      icon: formType === "income" ? "work" : "shopping"
-    };
-    setTransactions((current) => [item, ...current]);
-    setFormName("");
-    setFormAmount("");
-    setShowModal(false);
+    if (!formName.trim() || !Number.isFinite(amount) || amount <= 0) {
+      setFormError("Укажите описание и положительную сумму.");
+      return;
+    }
+    setSaving(true);
+    setFormError("");
+    try {
+      const created = await transactionsApi.create({
+        type: formType,
+        amount: formAmount,
+        category: formCategory,
+        description: formName.trim(),
+        occurred_at: new Date().toISOString()
+      });
+      setTransactions((current) => [mapTransaction(created), ...current]);
+      setSummary(await transactionsApi.summary(period.toLowerCase() as SummaryPeriod));
+      setFormName("");
+      setFormAmount("");
+      setShowModal(false);
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : "Не удалось сохранить операцию.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteTransaction(id: string) {
+    if (!window.confirm("Удалить эту операцию?")) return;
+    setDataError("");
+    try {
+      await transactionsApi.remove(id);
+      setTransactions((current) => current.filter((item) => item.id !== id));
+      setSummary(await transactionsApi.summary(period.toLowerCase() as SummaryPeriod));
+    } catch (error) {
+      setDataError(error instanceof Error ? error.message : "Не удалось удалить операцию.");
+    }
   }
 
   if (authLoading) return <main className="auth-screen"><section className="auth-card"><div className="auth-eyebrow"><span className="live-dot" /> MONEYKEEPER</div><h1>Загружаем аккаунт<span>.</span></h1><p className="auth-subtitle">Проверяем вашу сессию...</p></section></main>;
@@ -150,7 +222,7 @@ export default function App() {
           {navItems.map(({ label, icon: Icon }) => (
             <button key={label} className={"nav-link " + (activeNav === label ? "active" : "")} onClick={() => setActiveNav(label)}>
               <Icon size={18} strokeWidth={1.8} /><span>{label}</span>
-              {label === "Операции" && <span className="nav-count">5</span>}
+              {label === "Операции" && <span className="nav-count">{transactions.length}</span>
             </button>
           ))}
         </nav>
@@ -190,11 +262,12 @@ export default function App() {
         </header>
 
         <div className="page-wrap">
+          {dataError && <div className="auth-error dashboard-error" role="alert">{dataError}</div>}
           <section className="page-heading">
             <div>
               <div className="eyebrow"><span className="live-dot" /> ВАШИ ФИНАНСЫ</div>
               <h1>Ваши деньги — <em>под контролем.</em></h1>
-              <p className="heading-subtitle">Пока здесь демонстрационные суммы. Реальные счета подключим следующим этапом.</p>
+              <p className="heading-subtitle">Ваши операции, баланс и аналитика из личного аккаунта.</p>
             </div>
             <div className="heading-actions">
               <button className="secondary-button" onClick={() => setActiveNav("Отчёты")}><Download size={16} /> Экспорт</button>
@@ -209,27 +282,25 @@ export default function App() {
                 <span className="balance-label"><span className="balance-icon"><Wallet size={15} /></span> ОБЩИЙ БАЛАНС</span>
                 <button className="balance-menu" aria-label="Настройки баланса"><Ellipsis size={20} /></button>
               </div>
-              <div className="balance-value">842 050<span>,50 ₽</span></div>
-              <div className="balance-foot"><span className="positive-chip"><ArrowUpRight size={13} /> 12.8%</span><span className="balance-period">к прошлому месяцу</span></div>
+              <div className="balance-value">{money(Number(summary?.balance ?? 0))}</div>
+              <div className="balance-foot"><span className="positive-chip"><ArrowUpRight size={13} /> RUB</span><span className="balance-period">баланс по всем операциям</span></div>
               <div className="balance-divider" />
               <div className="balance-breakdown">
-                <div><span className="breakdown-dot income-dot" /><span>Доход</span><strong>485 000,00 ₽</strong></div>
-                <div><span className="breakdown-dot expense-dot" /><span>Расходы</span><strong>214 080,00 ₽</strong></div>
-                <div className="balance-card-link">Подробнее <ArrowUpRight size={13} /></div>
+                <div><span className="breakdown-dot income-dot" /><span>Доходы всего</span><strong>{money(Number(summary?.total_income ?? 0))}</strong></div>
+                <div><span className="breakdown-dot expense-dot" /><span>Расходы всего</span><strong>{money(Number(summary?.total_expenses ?? 0))}</strong></div>
+                <div className="balance-card-link">За всё время</div>
               </div>
               <div className="balance-decoration">₽</div>
             </article>
             <article className="stat-card income-stat">
-              <div className="stat-card-head"><span>ДОХОДЫ</span><span className="stat-icon"><ArrowDownLeft size={17} /></span></div>
-              <div className="stat-value">485 000<span> ₽</span></div>
-              <div className="stat-foot"><span className="positive-text"><ArrowUpRight size={13} /> 8.2%</span><span>к прошлому месяцу</span></div>
-              <div className="sparkline income-spark"><svg viewBox="0 0 180 42" preserveAspectRatio="none"><path d="M0 34 C18 30 18 27 34 29 S55 20 70 25 S93 14 108 19 S132 10 145 14 S164 5 180 3" /><path className="spark-fill" d="M0 34 C18 30 18 27 34 29 S55 20 70 25 S93 14 108 19 S132 10 145 14 S164 5 180 3 L180 42 L0 42Z" /></svg></div>
+              <div className="stat-card-head"><span>ДОХОДЫ · {period.toUpperCase()}</span><span className="stat-icon"><ArrowDownLeft size={17} /></span></div>
+              <div className="stat-value">{money(Number(summary?.period_income ?? 0))}</div>
+              <div className="stat-foot"><span className="positive-text">Поступления</span><span>за выбранный период</span></div>
             </article>
             <article className="stat-card expense-stat">
-              <div className="stat-card-head"><span>РАСХОДЫ</span><span className="stat-icon expense-icon"><ArrowUpRight size={17} /></span></div>
-              <div className="stat-value">214 080<span> ₽</span></div>
-              <div className="stat-foot"><span className="positive-text"><ArrowDownRight size={13} /> 4.6%</span><span>к прошлому месяцу</span></div>
-              <div className="sparkline expense-spark"><svg viewBox="0 0 180 42" preserveAspectRatio="none"><path d="M0 8 C16 13 19 4 34 15 S54 11 68 23 S87 14 103 24 S125 19 141 29 S164 25 180 35" /><path className="spark-fill" d="M0 8 C16 13 19 4 34 15 S54 11 68 23 S87 14 103 24 S125 19 141 29 S164 25 180 35 L180 42 L0 42Z" /></svg></div>
+              <div className="stat-card-head"><span>РАСХОДЫ · {period.toUpperCase()}</span><span className="stat-icon expense-icon"><ArrowUpRight size={17} /></span></div>
+              <div className="stat-value">{money(Number(summary?.period_expenses ?? 0))}</div>
+              <div className="stat-foot"><span className="positive-text">Списания</span><span>за выбранный период</span></div>
             </article>
           </section>
 
@@ -242,12 +313,12 @@ export default function App() {
                 </div>
               </div>
               <div className="chart-summary">
-                <div><span className="chart-legend income-legend" /><span>Доход</span><strong>485 000,00 ₽</strong></div>
-                <div><span className="chart-legend expense-legend" /><span>Расходы</span><strong>214 080,00 ₽</strong></div>
+                <div><span className="chart-legend income-legend" /><span>Доход</span><strong>{money(Number(summary?.period_income ?? 0))}</strong></div>
+                <div><span className="chart-legend expense-legend" /><span>Расходы</span><strong>{money(Number(summary?.period_expenses ?? 0))}</strong></div>
               </div>
               <div className="chart-wrap">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartSets[period]} margin={{ top: 12, right: 5, left: -20, bottom: 0 }}>
+                  <AreaChart data={chartData} margin={{ top: 12, right: 5, left: -20, bottom: 0 }}>
                     <defs>
                       <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#c7f36b" stopOpacity={0.22} /><stop offset="100%" stopColor="#c7f36b" stopOpacity={0} /></linearGradient>
                       <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#55d6ff" stopOpacity={0.13} /><stop offset="100%" stopColor="#55d6ff" stopOpacity={0} /></linearGradient>
@@ -260,25 +331,29 @@ export default function App() {
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
-              <div className="chart-bottom-note"><span><span className="note-pulse" /> Обновлено только что</span><span>Чистый денежный поток <strong>+270 920,00 ₽</strong></span></div>
+              <div className="chart-bottom-note"><span><span className="note-pulse" /> {dataLoading ? "Обновляем данные..." : "Данные аккаунта"}</span><span>Чистый поток <strong>{money(Number(summary?.period_income ?? 0) - Number(summary?.period_expenses ?? 0))}</strong></span></div>
             </article>
 
             <article className="panel budget-panel">
               <div className="panel-heading budget-heading">
-                <div><div className="panel-kicker">ПЛАН РАСХОДОВ</div><h2>Бюджеты на месяц</h2><p>Вы тратите меньше, чем в прошлом месяце.</p></div>
-                <button className="more-button" aria-label="Настройки бюджета"><Ellipsis size={19} /></button>
+                <div><div className="panel-kicker">СТРУКТУРА РАСХОДОВ</div><h2>По категориям</h2><p>Распределение расходов за ${periodName}.</p></div>
               </div>
-              <div className="budget-total-row"><div><strong>155 400 ₽</strong><span> из 215 000 ₽ использовано</span></div><span className="budget-percent">72%</span></div>
-              <div className="budget-total-track"><span /></div>
+              <div className="budget-total-row"><div><strong>{money(Number(summary?.period_expenses ?? 0))}</strong><span> всего за период</span></div><span className="budget-percent">{categoryExpenses.length} кат.</span></div>
               <div className="budget-list">
-                {budgets.map(({ name, spent, total, color, icon: Icon }) => (
-                  <div className="budget-item" key={name}>
-                    <div className="budget-item-top"><span className={"budget-category-icon " + color}><Icon size={15} /></span><strong>{name}</strong><span className="budget-amount">{money(spent)} <i>/ {money(total)}</i></span></div>
-                    <div className={"budget-track " + color}><span style={{ width: ((spent / total) * 100) + "%" }} /></div>
-                  </div>
-                ))}
+                {categoryExpenses.length === 0 ? (
+                  <div className="empty-state">Пока нет расходов за выбранный период.</div>
+                ) : categoryExpenses.slice(0, 5).map((item, index) => {
+                  const color = ["lime", "cyan", "violet"][index % 3];
+                  const amount = Number(item.amount);
+                  const percent = maxCategoryExpense > 0 ? (amount / maxCategoryExpense) * 100 : 0;
+                  return (
+                    <div className="budget-item" key={item.category}>
+                      <div className="budget-item-top"><span className={"budget-category-icon " + color}>₽</span><strong>{item.category}</strong><span className="budget-amount">{money(amount)}</span></div>
+                      <div className={"budget-track " + color}><span style={{ width: percent + "%" }} /></div>
+                    </div>
+                  );
+                })}
               </div>
-              <button className="text-link" onClick={() => setActiveNav("Бюджеты")}>Все бюджеты <ArrowUpRight size={14} /></button>
             </article>
           </section>
 
@@ -289,15 +364,19 @@ export default function App() {
             </div>
             <div className="transaction-table">
               <div className="transaction-table-head"><span>ОПЕРАЦИЯ</span><span>КАТЕГОРИЯ</span><span>ДАТА</span><span className="amount-heading">СУММА</span></div>
-              {visibleTransactions.slice(0, 5).map((item) => (
+              {dataLoading ? (
+                <div className="empty-state">Загружаем операции...</div>
+              ) : visibleTransactions.slice(0, 8).map((item) => (
                 <div className="transaction-row" key={item.id}>
-                  <div className="transaction-name"><span className={"transaction-icon " + item.icon}><TransactionIcon type={item.icon} /></span><strong>{item.name}</strong></div>
+                  <div className="transaction-name"><span className={"transaction-icon " + item.icon}><TransactionIcon type={item.icon} /></span><strong>{item.name}</strong><button className="transaction-delete" type="button" title="Удалить операцию" aria-label={"Удалить " + item.name} onClick={() => void deleteTransaction(item.id)}><Trash2 size={14} /></button></div>
                   <div className="transaction-category">{item.category}</div>
                   <div className="transaction-date">{item.date}</div>
-                  <div className={"transaction-amount " + (item.amount > 0 ? "credit" : "")}>{item.amount > 0 ? "+" : "−"}{money(Math.abs(item.amount))}</div>
+                  <div className={"transaction-amount " + (item.type === "income" ? "credit" : "")}>{item.type === "income" ? "+" : "−"}{money(item.amount)}</div>
                 </div>
               ))}
-              {visibleTransactions.length === 0 && <div className="empty-state">Ничего не найдено по запросу “{query}”.</div>}
+              {!dataLoading && visibleTransactions.length === 0 && (
+                <div className="empty-state">{query ? "По этому запросу операций нет." : "Операций пока нет. Добавьте первую через кнопку выше."}</div>
+              )}
             </div>
           </section>
           <footer className="dashboard-footer"><span>© 2026 MoneyKeeper</span><span>Для ясности в финансах <span className="footer-spark">✳</span></span><span>Все системы работают <i className="footer-status" /></span></footer>
@@ -308,11 +387,20 @@ export default function App() {
         <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowModal(false); }}>
           <form className="transaction-modal" onSubmit={addTransaction}>
             <div className="modal-heading"><div><span className="panel-kicker">БЫСТРОЕ ДОБАВЛЕНИЕ</span><h2>Добавить операцию</h2></div><button type="button" className="icon-button" aria-label="Закрыть" onClick={() => setShowModal(false)}><X size={19} /></button></div>
-            <div className="type-toggle"><button type="button" className={formType === "expense" ? "active expense-choice" : ""} onClick={() => setFormType("expense")}>Расход</button><button type="button" className={formType === "income" ? "active income-choice" : ""} onClick={() => setFormType("income")}>Доход</button></div>
+            <div className="type-toggle"><button type="button" className={formType === "expense" ? "active expense-choice" : ""} onClick={() => { setFormType("expense"); setFormCategory("Продукты"); }}>Расход</button><button type="button" className={formType === "income" ? "active income-choice" : ""} onClick={() => { setFormType("income"); setFormCategory("Зарплата"); }}>Доход</button></div>
             <label className="form-label">ОПИСАНИЕ<input autoFocus value={formName} onChange={(event) => setFormName(event.target.value)} placeholder="Например, продукты" required /></label>
+            <label className="form-label">КАТЕГОРИЯ
+              <select value={formCategory} onChange={(event) => setFormCategory(event.target.value)}>
+                {(formType === "income"
+                  ? ["Зарплата", "Перевод", "Подарок", "Другое"]
+                  : ["Продукты", "Жильё", "Транспорт", "Кафе", "Покупки", "Здоровье", "Другое"]
+                ).map((category) => <option key={category} value={category}>{category}</option>)}
+              </select>
+            </label>
             <label className="form-label">СУММА (₽)<input type="number" min="0.01" step="0.01" value={formAmount} onChange={(event) => setFormAmount(event.target.value)} placeholder="0.00" required /></label>
-            <button className="primary-button modal-submit" type="submit"><Plus size={16} /> Сохранить операцию</button>
-            <p className="modal-hint">Демо-режим · Операция хранится только в текущем сеансе браузера.</p>
+            {formError && <div className="auth-error" role="alert">{formError}</div>}
+            <button className="primary-button modal-submit" type="submit" disabled={saving}><Plus size={16} /> {saving ? "Сохраняем..." : "Сохранить операцию"}</button>
+            <p className="modal-hint">Операция сохранится в вашем аккаунте и будет доступна после повторного входа.</p>
           </form>
         </div>
       )}
