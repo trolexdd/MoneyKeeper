@@ -28,7 +28,12 @@ class Transaction(Base):
     )
     type: Mapped[str] = mapped_column(String(16), nullable=False)
     amount: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
-    currency: Mapped[str] = mapped_column(String(3), default="RUB", server_default="RUB", nullable=False)
+    currency: Mapped[str] = mapped_column(
+        String(3),
+        default="RUB",
+        server_default="RUB",
+        nullable=False,
+    )
     category: Mapped[str] = mapped_column(String(80), nullable=False)
     description: Mapped[str] = mapped_column(String(200), nullable=False)
     occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
