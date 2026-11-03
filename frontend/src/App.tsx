@@ -9,7 +9,7 @@ import {
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import AuthPage from "./AuthPage";
 import { ApiError, authApi, clearSession, restoreSession, saveSession, signOut, type User } from "./lib/auth";
-import { getTelegramInitData } from "./lib/telegram";
+import { getTelegramInitData, initializeTelegramWebApp } from "./lib/telegram";
 import {
   transactionsApi,
   type TransactionRecord,
@@ -300,6 +300,10 @@ export default function App() {
   const [budgetAmount, setBudgetAmount] = useState("");
   const [budgetModalError, setBudgetModalError] = useState("");
   const [budgetSaving, setBudgetSaving] = useState(false);
+
+  useEffect(() => {
+    initializeTelegramWebApp();
+  }, []);
 
   useEffect(() => {
     let active = true;
