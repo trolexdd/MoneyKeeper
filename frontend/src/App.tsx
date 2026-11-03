@@ -297,7 +297,7 @@ export default function App() {
     setDataError("");
     const selectedPeriod = period.toLowerCase() as SummaryPeriod;
 
-    Promise.all([transactionsApi.list(100), transactionsApi.summary(selectedPeriod)])
+    Promise.all([transactionsApi.list(500), transactionsApi.summary(selectedPeriod)])
       .then(([records, nextSummary]) => {
         if (!active) return;
         setTransactions(records.map(mapTransaction));
@@ -349,7 +349,6 @@ export default function App() {
     [summary]
   );
   const categoryExpenses = summary?.expenses_by_category ?? [];
-  const maxCategoryExpense = Math.max(0, ...categoryExpenses.map((item) => Number(item.amount)));
   const periodName = ({ Week: "неделю", Month: "месяц", Year: "год" })[period];
   const periodLabel = ({ Week: "НЕДЕЛЮ", Month: "МЕСЯЦ", Year: "ГОД" })[period];
   const pageCopy: Record<string, { eyebrow: string; title: string; accent: string; subtitle: string }> = {
@@ -443,7 +442,7 @@ export default function App() {
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <a className="brand" href="#" aria-label="MoneyKeeper home">
+        <a className="brand" href="#overview" aria-label="MoneyKeeper — обзор" onClick={(event) => { event.preventDefault(); setActiveNav("Обзор"); }}>
           <span className="brand-mark"><Wallet size={19} strokeWidth={2.2} /></span>
           <span className="brand-name">money<span>keeper</span><i>.</i></span>
         </a>
@@ -667,7 +666,7 @@ export default function App() {
                 <div className="report-stat-row"><span>Доходы за всё время</span><strong>{money(Number(summary?.total_income ?? 0))}</strong></div>
                 <div className="report-stat-row"><span>Расходы за всё время</span><strong>{money(Number(summary?.total_expenses ?? 0))}</strong></div>
                 <div className="report-stat-row"><span>Баланс</span><strong>{money(Number(summary?.balance ?? 0))}</strong></div>
-                <p className="feature-caption">Экспорт включает до 100 последних операций, загруженных в приложение.</p>
+                <p className="feature-caption">Экспорт включает до 500 последних операций, загруженных в приложение.</p>
               </article>
             </section>
           )}
