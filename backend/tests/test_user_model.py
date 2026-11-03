@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine, inspect
 
-from app.db.base import Base
 from app import models  # noqa: F401
+from app.db.base import Base
 
 
 def test_user_table_metadata_can_be_created_with_sqlite() -> None:
