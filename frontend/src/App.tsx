@@ -365,17 +365,24 @@ export default function App() {
 
   function exportTransactionsCsv() {
     const safeText = (value: string) => {
-      const normalized = value.replace(/\\r?\\n/g, " ").trim();
-      const protectedValue = /^[=+@\\t\\r-]/.test(normalized) ? "'" + normalized : normalized;
+      const normalized = value.replace(/\r?\n/g, " ").trim();
+      const protectedValue = /^[=+@	\r-]/.test(normalized) ? "'" + normalized : normalized;
       return '"' + protectedValue.replace(/"/g, '""') + '"';
     };
     const rows = [
       ["Дата", "Тип", "Описание", "Категория", "Сумма", "Валюта"],
-      ...transactions.map((item) => [item.date, item.type === "income" ? "Доход" : "Расход", item.name, item.category, String(item.amount), "RUB"])
+      ...transactions.map((item) => [
+        item.date,
+        item.type === "income" ? "Доход" : "Расход",
+        item.name,
+        item.category,
+        String(item.amount),
+        "RUB"
+      ])
     ];
-    const csv = "\\uFEFF" + rows.map((row) => row.map((value, index) =>
+    const csv = "\uFEFF" + rows.map((row) => row.map((value, index) =>
       index === 4 ? String(value) : safeText(String(value))
-    ).join(";")).join("\\r\\n");
+    ).join(";")).join("\r\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
