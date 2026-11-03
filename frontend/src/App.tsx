@@ -60,6 +60,195 @@ function TransactionIcon({ type }: { type: Transaction["icon"] }) {
   return <Icon size={17} strokeWidth={1.8} />;
 }
 
+type ChartPoint = { label: string; income: number; expenses: number };
+
+type CashflowPanelProps = {
+  data: ChartPoint[];
+  period: Period;
+  onPeriodChange: (period: Period) => void;
+  income: number;
+  expenses: number;
+  loading: boolean;
+};
+
+function CashflowPanel({
+  data,
+  period,
+  onPeriodChange,
+  income,
+  expenses,
+  loading,
+}: CashflowPanelProps) {
+  return (
+    <article className="panel cashflow-panel">
+      <div className="panel-heading">
+        <div>
+          <div className="panel-kicker">ДВИЖЕНИЕ ДЕНЕГ</div>
+          <h2>Движение средств</h2>
+          <p>Следите за доходами и расходами.</p>
+        </div>
+        <div className="period-switch" role="group" aria-label="Период графика">
+          {(["Week", "Month", "Year"] as Period[]).map((item) => (
+            <button
+              key={item}
+              className={period === item ? "selected" : ""}
+              onClick={() => onPeriodChange(item)}
+            >
+              {({ Week: "Неделя", Month: "Месяц", Year: "Год" })[item]}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="chart-summary">
+        <div><span className="chart-legend income-legend" /><span>Доход</span><strong>{money(income)}</strong></div>
+        <div><span className="chart-legend expense-legend" /><span>Расходы</span><strong>{money(expenses)}</strong></div>
+      </div>
+      <div className="chart-wrap">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={data} margin={{ top: 12, right: 5, left: -20, bottom: 0 }}>
+            <defs>
+              <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#c7f36b" stopOpacity={0.22} />
+                <stop offset="100%" stopColor="#c7f36b" stopOpacity={0} />
+              </linearGradient>
+              <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#55d6ff" stopOpacity={0.13} />
+                <stop offset="100%" stopColor="#55d6ff" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid stroke="#26323d" strokeDasharray="3 5" vertical={false} />
+            <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: "#778592", fontSize: 11 }} dy={12} />
+            <Tooltip
+              contentStyle={{ background: "#18232d", border: "1px solid #30404e", borderRadius: 12, color: "#f3f6f8", fontSize: 12 }}
+              formatter={(value) => money(Number(value))}
+            />
+            <Area type="monotone" dataKey="income" stroke="#c7f36b" strokeWidth={2.4} fill="url(#incomeGradient)" />
+            <Area type="monotone" dataKey="expenses" stroke="#55d6ff" strokeWidth={2.1} fill="url(#expenseGradient)" />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="chart-bottom-note">
+        <span><span className="note-pulse" /> {loading ? "Обновляем данные..." : "Данные аккаунта"}</span>
+        <span>Чистый поток <strong>{money(income - expenses)}</strong></span>
+      </div>
+    </article>
+  );
+}
+
+type CategoryBreakdownProps = {
+  items: { category: string; amount: string }[];
+  total: number;
+  periodName: string;
+};
+
+function CategoryBreakdownPanel({ items, total, periodName }: CategoryBreakdownProps) {
+  const maxAmount = Math.max(0, ...items.map((item) => Number(item.amount)));
+  return (
+    <article className="panel budget-panel">
+      <div className="panel-heading budget-heading">
+        <div>
+          <div className="panel-kicker">СТРУКТУРА РАСХОДОВ</div>
+          <h2>По категориям</h2>
+          <p>Распределение расходов за {periodName}.</p>
+        </div>
+      </div>
+      <div className="budget-total-row">
+        <div><strong>{money(total)}</strong><span> всего за период</span></div>
+        <span className="budget-percent">{items.length} кат.</span>
+      </div>
+      <div className="budget-list">
+        {items.length === 0 ? (
+          <div className="empty-state">Пока нет расходов за выбранный период.</div>
+        ) : items.slice(0, 8).map((item, index) => {
+          const color = ["lime", "cyan", "violet"][index % 3];
+          const amount = Number(item.amount);
+          const percent = maxAmount > 0 ? (amount / maxAmount) * 100 : 0;
+          return (
+            <div className="budget-item" key={item.category}>
+              <div className="budget-item-top">
+                <span className={"budget-category-icon " + color}>₽</span>
+                <strong>{item.category}</strong>
+                <span className="budget-amount">{money(amount)}</span>
+              </div>
+              <div className={"budget-track " + color}>
+                <span style={{ width: percent + "%" }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </article>
+  );
+}
+
+type TransactionsPanelProps = {
+  items: Transaction[];
+  loading: boolean;
+  query: string;
+  compact?: boolean;
+  onDelete: (id: string) => void;
+  onViewAll?: () => void;
+};
+
+function TransactionsPanel({
+  items,
+  loading,
+  query,
+  compact = false,
+  onDelete,
+  onViewAll,
+}: TransactionsPanelProps) {
+  return (
+    <section className="panel transactions-panel">
+      <div className="panel-heading transactions-heading">
+        <div>
+          <div className="panel-kicker">{compact ? "ПОСЛЕДНИЕ ОПЕРАЦИИ" : "ВАША ФИНАНСОВАЯ ИСТОРИЯ"}</div>
+          <h2>{compact ? "Последние операции" : "Все операции"}</h2>
+          <p>{compact ? "Недавние движения средств в вашем аккаунте." : "Полная история доходов и расходов."}</p>
+        </div>
+        {compact && onViewAll && (
+          <button className="secondary-button compact-button" onClick={onViewAll}>
+            Все операции <ArrowUpRight size={14} />
+          </button>
+        )}
+      </div>
+      <div className="transaction-table">
+        <div className="transaction-table-head">
+          <span>ОПЕРАЦИЯ</span><span>КАТЕГОРИЯ</span><span>ДАТА</span><span className="amount-heading">СУММА</span>
+        </div>
+        {loading ? (
+          <div className="empty-state">Загружаем операции...</div>
+        ) : items.length > 0 ? items.map((item) => (
+          <div className="transaction-row" key={item.id}>
+            <div className="transaction-name">
+              <span className={"transaction-icon " + item.icon}><TransactionIcon type={item.icon} /></span>
+              <strong>{item.name}</strong>
+              <button
+                className="transaction-delete"
+                type="button"
+                title="Удалить операцию"
+                aria-label={"Удалить " + item.name}
+                onClick={() => onDelete(item.id)}
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+            <div className="transaction-category">{item.category}</div>
+            <div className="transaction-date">{item.date}</div>
+            <div className={"transaction-amount " + (item.type === "income" ? "credit" : "")}>
+              {item.type === "income" ? "+" : "−"}{money(item.amount)}
+            </div>
+          </div>
+        )) : (
+          <div className="empty-state">
+            {query ? "По этому запросу операций нет." : "Операций пока нет. Добавьте первую через кнопку выше."}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 const navItems = [
   { label: "Обзор", icon: LayoutDashboard },
   { label: "Операции", icon: Activity },
