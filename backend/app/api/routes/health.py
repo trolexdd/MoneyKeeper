@@ -14,7 +14,11 @@ def liveness() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@router.get("/health/ready", summary="Readiness probe")
+@router.get(
+    "/health/ready",
+    summary="Readiness probe",
+    response_model=None,
+)
 def readiness() -> dict[str, str] | JSONResponse:
     """Return success only when the API can reach PostgreSQL."""
     try:
