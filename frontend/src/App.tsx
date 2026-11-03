@@ -95,8 +95,15 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setTransactions([]);
+      setSummary(null);
+      setDataLoading(false);
+      return;
+    }
     let active = true;
+    setTransactions([]);
+    setSummary(null);
     setDataLoading(true);
     setDataError("");
     const selectedPeriod = period.toLowerCase() as SummaryPeriod;
@@ -108,7 +115,12 @@ export default function App() {
         setSummary(nextSummary);
       })
       .catch((error: unknown) => {
-        if (active) setDataError(error instanceof Error ? error.message : "Не удалось загрузить данные.");
+        if (!active) return;
+        if (error instanceof Error && error.message.includes("Сессия истекла")) {
+          setUser(null);
+          return;
+        }
+        setDataError(error instanceof Error ? error.message : "Не удалось загрузить данные.");
       })
       .finally(() => {
         if (active) setDataLoading(false);
@@ -174,6 +186,7 @@ export default function App() {
       setFormAmount("");
       setShowModal(false);
     } catch (error) {
+      if (error instanceof Error && error.message.includes("Сессия истекла")) setUser(null);
       setFormError(error instanceof Error ? error.message : "Не удалось сохранить операцию.");
     } finally {
       setSaving(false);
@@ -188,6 +201,7 @@ export default function App() {
       setTransactions((current) => current.filter((item) => item.id !== id));
       setSummary(await transactionsApi.summary(period.toLowerCase() as SummaryPeriod));
     } catch (error) {
+      if (error instanceof Error && error.message.includes("Сессия истекла")) setUser(null);
       setDataError(error instanceof Error ? error.message : "Не удалось удалить операцию.");
     }
   }
