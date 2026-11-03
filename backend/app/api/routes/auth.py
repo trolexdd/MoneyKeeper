@@ -107,11 +107,16 @@ def refresh(payload: RefreshRequest, db: Session = Depends(get_db)) -> TokenResp
         .where(UserSession.refresh_token_hash == hash_refresh_token(payload.refresh_token))
         .with_for_update()
     )
-    if (
-        user_session is None
-        or user_session.revoked_at is not None
-        or user_session.expires_at <= now
-    ):
+    if user_session is None or user_session.revoked_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token is invalid or expired.",
+        )
+
+    expires_at = user_session.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=UTC)
+    if expires_at <= now:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Refresh token is invalid or expired.",
