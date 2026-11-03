@@ -1,8 +1,8 @@
-from collections.abc import Generator
 import hashlib
 import hmac
 import json
 import time
+from collections.abc import Generator
 from urllib.parse import urlencode
 
 import pytest
