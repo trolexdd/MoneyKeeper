@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import BigInteger, Boolean, DateTime, String, Uuid, func
+from sqlalchemy import BigInteger, Boolean, DateTime, Index, String, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -9,6 +9,7 @@ from app.db.base import Base
 
 class User(Base):
     __tablename__ = "users"
+    __table_args__ = (Index("ix_users_telegram_id", "telegram_id", unique=True),)
 
     id: Mapped[uuid.UUID] = mapped_column(
         Uuid(as_uuid=True),
@@ -23,7 +24,6 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     telegram_id: Mapped[int | None] = mapped_column(
         BigInteger,
-        unique=True,
         nullable=True,
     )
     telegram_username: Mapped[str | None] = mapped_column(String(32), nullable=True)
