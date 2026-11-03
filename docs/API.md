@@ -23,6 +23,19 @@
 - /auth/me проверяет не только JWT, но и активность сессии в PostgreSQL.
 - Для logout передаётся JSON body: {"refresh_token":"..."}.
 
+## Transactions
+
+Все пути ниже имеют префикс /api/v1. Все endpoints требуют Bearer access token.
+
+| Method | Path | Назначение |
+|---|---|---|
+| GET | /transactions | Последние операции текущего пользователя; limit/offset |
+| POST | /transactions | Создание дохода или расхода |
+| DELETE | /transactions/{transaction_id} | Удаление собственной операции |
+| GET | /transactions/summary?period=week\|month\|year | Баланс, доходы/расходы, ряды графика и расходы по категориям |
+
+Текущая версия использует RUB. Сумма передаётся положительным десятичным числом; направление задаётся полем type (income или expense). Каждая операция автоматически получает user_id из проверенной сессии — передать владельца из клиента нельзя. Чужие операции не возвращаются и не удаляются.
+
 ## Accounts and ledger
 
 - GET|POST /accounts
