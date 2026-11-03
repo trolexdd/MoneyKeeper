@@ -131,16 +131,16 @@ def test_users_cannot_see_or_delete_each_others_transactions(client: TestClient)
 
 
 def test_invalid_amount_and_missing_auth_are_rejected(client: TestClient) -> None:
-    invalid = client.post(
+    missing_auth = client.post(
         "/api/v1/transactions",
         json={
             "type": "expense",
-            "amount": "0",
+            "amount": "10.00",
             "category": "Другое",
-            "description": "Zero amount",
+            "description": "Valid payload without authentication",
         },
     )
-    assert invalid.status_code == 401
+    assert missing_auth.status_code == 401
 
     session = register(client, "validation@example.com")
     rejected = client.post(
