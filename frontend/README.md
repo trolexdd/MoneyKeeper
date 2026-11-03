@@ -32,7 +32,7 @@ The current development client stores tokens in `sessionStorage`, so the session
 
 - **Обзор** — balance, income/expense totals, cashflow chart, category breakdown, latest transactions.
 - **Операции** — searchable history of up to 500 latest transactions, with delete action.
-- **Бюджеты** — actual category spending is visible; monthly limits and budget creation are not implemented yet.
+- **Бюджеты** — monthly category limits with month selection, create/edit/delete, actual spending, remaining amount, progress, 80% warning and over-limit alert.
 - **Карты** — account and bank-card connection is a planned feature.
 - **Умная аналитика** — actual period metrics, cashflow, categories, and a basic spending observation.
 - **Отчёты** — download the 500 latest loaded transactions as CSV.
@@ -44,7 +44,7 @@ The desktop sidebar and mobile bottom navigation use the same destinations. Sele
 
 The dashboard reads transaction records and summary data from the authenticated API. Create and delete operations are persisted in PostgreSQL and scoped to the signed-in user. The balance card shows the lifetime balance; the income, expense, chart, and category breakdown follow the selected week/month/year period. Currency is RUB in this first ledger iteration.
 
-Editing an existing transaction, monthly budget limits, bank accounts/cards, and advanced exports are not implemented yet. Tokens are held in `sessionStorage` for local development; before production, move refresh-token handling to Secure, HttpOnly, SameSite cookies and configure a production CORS allowlist.
+Editing an existing transaction, bank accounts/cards, and advanced exports are not implemented yet. Budgets are unique per user, category and month; the API calculates spending from actual expense transactions. Tokens are held in `sessionStorage` for local development; before production, move refresh-token handling to Secure, HttpOnly, SameSite cookies and configure a production CORS allowlist.
 
 ## Production build
 
