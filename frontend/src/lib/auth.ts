@@ -87,6 +87,21 @@ export const authApi = {
 
 const ACCESS_KEY = "moneykeeper.access_token";
 const REFRESH_KEY = "moneykeeper.refresh_token";
+let refreshInFlight: Promise<AuthSession> | null = null;
+
+function rotateRefreshToken(refreshToken: string): Promise<AuthSession> {
+  if (!refreshInFlight) {
+    refreshInFlight = authApi.refresh(refreshToken)
+      .then((session) => {
+        saveSession(session);
+        return session;
+      })
+      .finally(() => {
+        refreshInFlight = null;
+      });
+  }
+  return refreshInFlight;
+}
 
 export function saveSession(session: AuthSession) {
   sessionStorage.setItem(ACCESS_KEY, session.access_token);
@@ -160,12 +175,11 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
 
     let refreshed: AuthSession;
     try {
-      refreshed = await authApi.refresh(refreshToken);
+      refreshed = await rotateRefreshToken(refreshToken);
     } catch {
       clearSession();
       throw new Error("Сессия истекла. Войдите в аккаунт ещё раз.");
     }
-    saveSession(refreshed);
     return send(refreshed.access_token);
   }
 }
