@@ -57,6 +57,8 @@ Implemented authentication endpoints (prefix /api/v1/auth):
 
 The API returns access and refresh tokens in JSON. Clients must avoid logging tokens and should store refresh tokens only in an appropriately protected client-side storage mechanism.
 
+Passwords use Argon2id (19 MiB, 2 passes, 1 lane). Existing hashes created with older parameters are upgraded automatically after a successful login, so the first login after this change can still take longer; subsequent logins use the tuned parameters.
+
 ## Database migrations
 
 Alembic configuration lives in alembic.ini; migration scripts are in migrations/versions/. The database URL is loaded from application settings, so the same DATABASE_URL is used by the API and migrations.
@@ -90,7 +92,7 @@ pytest
 ruff check .
 ```
 
-Authentication tests use an isolated in-memory SQLite database. They cover registration, duplicate email, password validation, login, refresh-token rotation, logout revocation and protected profile access.
+Authentication tests use an isolated in-memory SQLite database. They cover registration, duplicate email, password validation, login, automatic upgrade of older Argon2id hashes, refresh-token rotation, logout revocation and protected profile access.
 
 ## Configuration
 
