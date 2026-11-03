@@ -117,14 +117,14 @@ export default function App() {
           {navItems.map(({ label, icon: Icon }) => (
             <button key={label} className={"nav-link " + (activeNav === label ? "active" : "")} onClick={() => setActiveNav(label)}>
               <Icon size={18} strokeWidth={1.8} /><span>{label}</span>
-              {label === "Transactions" && <span className="nav-count">5</span>}
+              {label === "Операции" && <span className="nav-count">5</span>}
             </button>
           ))}
         </nav>
         <div className="nav-label tools-label">ИНСТРУМЕНТЫ</div>
         <nav className="main-nav" aria-label="Инструменты">
-          <button className="nav-link" onClick={() => setActiveNav("Умная аналитика")}><Sparkles size={18} /><span>Smart insights</span><span className="new-pill">NEW</span></button>
-          <button className="nav-link" onClick={() => setActiveNav("Отчёты")}><FileText size={18} /><span>Reports</span></button>
+          <button className="nav-link" onClick={() => setActiveNav("Умная аналитика")}><Sparkles size={18} /><span>Умная аналитика</span><span className="new-pill">NEW</span></button>
+          <button className="nav-link" onClick={() => setActiveNav("Отчёты")}><FileText size={18} /><span>Отчёты</span></button>
         </nav>
         <div className="sidebar-bottom">
           <div className="upgrade-card">
@@ -134,10 +134,10 @@ export default function App() {
             <button onClick={() => setActiveNav("Умная аналитика")}>Открыть аналитику <ArrowUpRight size={14} /></button>
             <div className="upgrade-orb" />
           </div>
-          <button className="nav-link settings-link" onClick={() => setActiveNav("Настройки")}><Settings2 size={18} /><span>Settings</span></button>
+          <button className="nav-link settings-link" onClick={() => setActiveNav("Настройки")}><Settings2 size={18} /><span>Настройки</span></button>
           <div className="profile-row">
-            <div className="profile-avatar">JD</div>
-            <div className="profile-copy"><strong>Иван</strong><span>Личный аккаунт</span></div>
+            <div className="profile-avatar">П</div>
+            <div className="profile-copy"><strong>Пользователь</strong><span>Личный аккаунт</span></div>
             <Ellipsis size={18} />
           </div>
         </div>
@@ -149,10 +149,10 @@ export default function App() {
           <div className="topbar-actions">
             <label className="search-box"><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Поиск операций..." aria-label="Поиск операций" /><kbd>⌘ K</kbd></label>
             <div className="notification-wrap">
-              <button className="icon-button notification-button" aria-label="Notifications" onClick={() => setShowNotifications((value) => !value)}><Bell size={18} /><i /></button>
+              <button className="icon-button notification-button" aria-label="Уведомления" onClick={() => setShowNotifications((value) => !value)}><Bell size={18} /><i /></button>
               {showNotifications && <div className="notification-popover"><strong>Новых уведомлений нет</strong><span>Здесь появятся новые события.</span></div>}
             </div>
-            <button className="help-button" aria-label="Help"><CircleHelp size={18} /></button>
+            <button className="help-button" aria-label="Помощь"><CircleHelp size={18} /></button>
           </div>
         </header>
 
@@ -174,7 +174,7 @@ export default function App() {
               <div className="balance-card-glow" />
               <div className="balance-topline">
                 <span className="balance-label"><span className="balance-icon"><Wallet size={15} /></span> ОБЩИЙ БАЛАНС</span>
-                <button className="balance-menu" aria-label="Balance options"><Ellipsis size={20} /></button>
+                <button className="balance-menu" aria-label="Настройки баланса"><Ellipsis size={20} /></button>
               </div>
               <div className="balance-value">842 050<span>,50 ₽</span></div>
               <div className="balance-foot"><span className="positive-chip"><ArrowUpRight size={13} /> 12.8%</span><span className="balance-period">к прошлому месяцу</span></div>
@@ -182,19 +182,19 @@ export default function App() {
               <div className="balance-breakdown">
                 <div><span className="breakdown-dot income-dot" /><span>Доход</span><strong>485 000,00 ₽</strong></div>
                 <div><span className="breakdown-dot expense-dot" /><span>Расходы</span><strong>214 080,00 ₽</strong></div>
-                <div className="balance-card-link">View details <ArrowUpRight size={13} /></div>
+                <div className="balance-card-link">Подробнее <ArrowUpRight size={13} /></div>
               </div>
-              <div className="balance-decoration">€</div>
+              <div className="balance-decoration">₽</div>
             </article>
             <article className="stat-card income-stat">
               <div className="stat-card-head"><span>ДОХОДЫ</span><span className="stat-icon"><ArrowDownLeft size={17} /></span></div>
-              <div className="stat-value">€4,850<span>.00</span></div>
+              <div className="stat-value">485 000<span> ₽</span></div>
               <div className="stat-foot"><span className="positive-text"><ArrowUpRight size={13} /> 8.2%</span><span>к прошлому месяцу</span></div>
               <div className="sparkline income-spark"><svg viewBox="0 0 180 42" preserveAspectRatio="none"><path d="M0 34 C18 30 18 27 34 29 S55 20 70 25 S93 14 108 19 S132 10 145 14 S164 5 180 3" /><path className="spark-fill" d="M0 34 C18 30 18 27 34 29 S55 20 70 25 S93 14 108 19 S132 10 145 14 S164 5 180 3 L180 42 L0 42Z" /></svg></div>
             </article>
             <article className="stat-card expense-stat">
               <div className="stat-card-head"><span>РАСХОДЫ</span><span className="stat-icon expense-icon"><ArrowUpRight size={17} /></span></div>
-              <div className="stat-value">€2,140<span>.80</span></div>
+              <div className="stat-value">214 080<span> ₽</span></div>
               <div className="stat-foot"><span className="positive-text"><ArrowDownRight size={13} /> 4.6%</span><span>к прошлому месяцу</span></div>
               <div className="sparkline expense-spark"><svg viewBox="0 0 180 42" preserveAspectRatio="none"><path d="M0 8 C16 13 19 4 34 15 S54 11 68 23 S87 14 103 24 S125 19 141 29 S164 25 180 35" /><path className="spark-fill" d="M0 8 C16 13 19 4 34 15 S54 11 68 23 S87 14 103 24 S125 19 141 29 S164 25 180 35 L180 42 L0 42Z" /></svg></div>
             </article>
@@ -204,7 +204,7 @@ export default function App() {
             <article className="panel cashflow-panel">
               <div className="panel-heading">
                 <div><div className="panel-kicker">ДВИЖЕНИЕ ДЕНЕГ</div><h2>Движение средств</h2><p>Следите за доходами и расходами.</p></div>
-                <div className="period-switch" role="group" aria-label="Chart period">
+                <div className="period-switch" role="group" aria-label="Период графика">
                   {(["Week", "Month", "Year"] as Period[]).map((item) => <button key={item} className={period === item ? "selected" : ""} onClick={() => setPeriod(item)}>{({ Week: "Неделя", Month: "Месяц", Year: "Год" })[item]}</button>)}
                 </div>
               </div>
@@ -233,7 +233,7 @@ export default function App() {
             <article className="panel budget-panel">
               <div className="panel-heading budget-heading">
                 <div><div className="panel-kicker">ПЛАН РАСХОДОВ</div><h2>Бюджеты на месяц</h2><p>Вы тратите меньше, чем в прошлом месяце.</p></div>
-                <button className="more-button" aria-label="Budget options"><Ellipsis size={19} /></button>
+                <button className="more-button" aria-label="Настройки бюджета"><Ellipsis size={19} /></button>
               </div>
               <div className="budget-total-row"><div><strong>155 400 ₽</strong><span> из 215 000 ₽ использовано</span></div><span className="budget-percent">72%</span></div>
               <div className="budget-total-track"><span /></div>
@@ -267,17 +267,17 @@ export default function App() {
               {visibleTransactions.length === 0 && <div className="empty-state">Ничего не найдено по запросу “{query}”.</div>}
             </div>
           </section>
-          <footer className="dashboard-footer"><span>© 2026 MoneyKeeper</span><span>Для ясности в финансах <span className="footer-spark">✳</span></span><span>All systems operational <i className="footer-status" /></span></footer>
+          <footer className="dashboard-footer"><span>© 2026 MoneyKeeper</span><span>Для ясности в финансах <span className="footer-spark">✳</span></span><span>Все системы работают <i className="footer-status" /></span></footer>
         </div>
       </main>
 
       {showModal && (
         <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowModal(false); }}>
           <form className="transaction-modal" onSubmit={addTransaction}>
-            <div className="modal-heading"><div><span className="panel-kicker">БЫСТРОЕ ДОБАВЛЕНИЕ</span><h2>Добавить операцию</h2></div><button type="button" className="icon-button" aria-label="Close" onClick={() => setShowModal(false)}><X size={19} /></button></div>
+            <div className="modal-heading"><div><span className="panel-kicker">БЫСТРОЕ ДОБАВЛЕНИЕ</span><h2>Добавить операцию</h2></div><button type="button" className="icon-button" aria-label="Закрыть" onClick={() => setShowModal(false)}><X size={19} /></button></div>
             <div className="type-toggle"><button type="button" className={formType === "expense" ? "active expense-choice" : ""} onClick={() => setFormType("expense")}>Расход</button><button type="button" className={formType === "income" ? "active income-choice" : ""} onClick={() => setFormType("income")}>Доход</button></div>
             <label className="form-label">ОПИСАНИЕ<input autoFocus value={formName} onChange={(event) => setFormName(event.target.value)} placeholder="Например, продукты" required /></label>
-            <label className="form-label">СУММА (€)<input type="number" min="0.01" step="0.01" value={formAmount} onChange={(event) => setFormAmount(event.target.value)} placeholder="0.00" required /></label>
+            <label className="form-label">СУММА (₽)<input type="number" min="0.01" step="0.01" value={formAmount} onChange={(event) => setFormAmount(event.target.value)} placeholder="0,00" required /></label>
             <button className="primary-button modal-submit" type="submit"><Plus size={16} /> Сохранить операцию</button>
             <p className="modal-hint">Демо-режим · Операция хранится только в текущем сеансе браузера.</p>
           </form>
