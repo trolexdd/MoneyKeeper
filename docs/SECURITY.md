@@ -21,7 +21,9 @@
 - Для несуществующего email выполняется dummy Argon2 verify, чтобы уменьшить разницу во времени ответа.
 - Rate limiting на login/reset ещё требуется добавить до публичного развёртывания.
 - Не передавать пароли через обычные Telegram-команды.
-- Для Telegram Mini App проверять подпись initData на backend, timestamp и допустимый возраст данных.
+- Для Telegram Mini App проверять HMAC-подпись сырого initData на backend, timestamp и допустимый возраст данных. Не доверять initDataUnsafe на клиенте.
+- Telegram ID хранить как уникальный nullable идентификатор пользователя; привязку существующего профиля подтверждать email и паролем MoneyKeeper.
+- TELEGRAM_BOT_TOKEN хранить только в переменных окружения/secret manager; никогда не передавать его frontend и не коммитить в репозиторий.
 
 ## Authorization
 
