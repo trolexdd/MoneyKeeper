@@ -59,6 +59,26 @@ The API returns access and refresh tokens in JSON. Clients must avoid logging to
 
 Passwords use Argon2id (19 MiB, 2 passes, 1 lane). Existing hashes created with older parameters are upgraded automatically after a successful login, so the first login after this change can still take longer; subsequent logins use the tuned parameters.
 
+## Financial data
+
+Implemented transaction endpoints (prefix /api/v1/transactions):
+
+- GET / — list up to 500 of the current user's transactions
+- POST / — create an income or expense
+- DELETE /{transaction_id} — delete an owned transaction
+- GET /summary?period=week|month|year — balances, cashflow and category totals
+
+Implemented monthly budget endpoints (prefix /api/v1/budgets):
+
+- GET /?year=YYYY&month=M — list monthly category budgets with actual spending
+- POST / — create a category limit for a calendar month
+- PATCH /{budget_id} — update its limit
+- DELETE /{budget_id} — delete a budget
+
+Budget spending is calculated from expense transactions for the same user, category and UTC calendar month. Each user can create one budget per category per month. API responses include limit, spent, remaining, usage percentage and an over-limit flag. Currency is RUB in this version.
+
+Apply migrations through revision `0004_create_budgets` before using the budget endpoints.
+
 ## Database migrations
 
 Alembic configuration lives in alembic.ini; migration scripts are in migrations/versions/. The database URL is loaded from application settings, so the same DATABASE_URL is used by the API and migrations.
