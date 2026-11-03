@@ -6,7 +6,7 @@
 |---|---|---:|---|
 | Auth | Регистрация, вход, выход | P0 | Planned |
 | Auth | Восстановление доступа | P0 | Planned |
-| Auth | Привязка/отвязка Telegram | P1 | Planned |
+| Auth | Безопасная привязка Telegram к существующему аккаунту и Mini App login | P1 | In Progress |
 | Accounts | CRUD и архивирование счетов | P0 | Planned |
 | Accounts | Общие счета и участники | P1 | Planned |
 | Ledger | Доходы, расходы, переводы | P0 | Planned |
@@ -18,7 +18,7 @@
 | Analytics | Сводки и динамика | P1 | Planned |
 | Exports | XLSX-отчёты | P1 | Planned |
 | Telegram | Команды и быстрый ввод операций | P1 | Planned |
-| Mini App | Telegram WebApp интерфейс | P1 | Planned |
+| Mini App | Telegram SDK, initData auth и мобильная оболочка | P1 | In Progress |
 | AI | Чат, отчёты, разбор текстового ввода | P2 | Planned |
 | Notifications | Напоминания и регулярные задачи | P1 | Planned |
 | Social | Check-in, streaks, парные challenges | P2 | Planned |
