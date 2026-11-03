@@ -134,7 +134,7 @@ def create_budget(
             Transaction.type == "expense",
             Transaction.category == budget.category,
             Transaction.occurred_at >= start_at,
-            Transaction.occurred_at < end_at,
+            Transaction.occurred_at <= end_at,
         )
     ) or ZERO
     return _build_budget_read(budget, spent_amount)
