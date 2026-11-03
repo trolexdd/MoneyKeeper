@@ -495,121 +495,200 @@ export default function App() {
           {dataError && <div className="auth-error dashboard-error" role="alert">{dataError}</div>}
           <section className="page-heading">
             <div>
-              <div className="eyebrow"><span className="live-dot" /> ВАШИ ФИНАНСЫ</div>
-              <h1>Ваши деньги — <em>под контролем.</em></h1>
-              <p className="heading-subtitle">Ваши операции, баланс и аналитика из личного аккаунта.</p>
+              <div className="eyebrow"><span className="live-dot" /> {currentPage.eyebrow}</div>
+              <h1>{currentPage.title} <em>{currentPage.accent}</em></h1>
+              <p className="heading-subtitle">{currentPage.subtitle}</p>
             </div>
             <div className="heading-actions">
-              <button className="secondary-button" onClick={() => setActiveNav("Отчёты")}><Download size={16} /> Экспорт</button>
-              <button className="primary-button" onClick={() => { setFormError(""); setShowModal(true); }}><Plus size={17} strokeWidth={2.4} /> Добавить операцию</button>
-            </div>
-          </section>
-
-          <section className="overview-grid">
-            <article className="balance-card">
-              <div className="balance-card-glow" />
-              <div className="balance-topline">
-                <span className="balance-label"><span className="balance-icon"><Wallet size={15} /></span> ОБЩИЙ БАЛАНС</span>
-                <button className="balance-menu" aria-label="Настройки баланса"><Ellipsis size={20} /></button>
-              </div>
-              <div className="balance-value">{money(Number(summary?.balance ?? 0))}</div>
-              <div className="balance-foot"><span className="positive-chip"><ArrowUpRight size={13} /> RUB</span><span className="balance-period">баланс по всем операциям</span></div>
-              <div className="balance-divider" />
-              <div className="balance-breakdown">
-                <div><span className="breakdown-dot income-dot" /><span>Доходы всего</span><strong>{money(Number(summary?.total_income ?? 0))}</strong></div>
-                <div><span className="breakdown-dot expense-dot" /><span>Расходы всего</span><strong>{money(Number(summary?.total_expenses ?? 0))}</strong></div>
-                <div className="balance-card-link">За всё время</div>
-              </div>
-              <div className="balance-decoration">₽</div>
-            </article>
-            <article className="stat-card income-stat">
-              <div className="stat-card-head"><span>ДОХОДЫ ЗА {periodLabel}</span><span className="stat-icon"><ArrowDownLeft size={17} /></span></div>
-              <div className="stat-value">{money(Number(summary?.period_income ?? 0))}</div>
-              <div className="stat-foot"><span className="positive-text">Поступления</span><span>за выбранный период</span></div>
-            </article>
-            <article className="stat-card expense-stat">
-              <div className="stat-card-head"><span>РАСХОДЫ ЗА {periodLabel}</span><span className="stat-icon expense-icon"><ArrowUpRight size={17} /></span></div>
-              <div className="stat-value">{money(Number(summary?.period_expenses ?? 0))}</div>
-              <div className="stat-foot"><span className="positive-text">Списания</span><span>за выбранный период</span></div>
-            </article>
-          </section>
-
-          <section className="content-grid">
-            <article className="panel cashflow-panel">
-              <div className="panel-heading">
-                <div><div className="panel-kicker">ДВИЖЕНИЕ ДЕНЕГ</div><h2>Движение средств</h2><p>Следите за доходами и расходами.</p></div>
-                <div className="period-switch" role="group" aria-label="Период графика">
-                  {(["Week", "Month", "Year"] as Period[]).map((item) => <button key={item} className={period === item ? "selected" : ""} onClick={() => setPeriod(item)}>{({ Week: "Неделя", Month: "Месяц", Year: "Год" })[item]}</button>)}
-                </div>
-              </div>
-              <div className="chart-summary">
-                <div><span className="chart-legend income-legend" /><span>Доход</span><strong>{money(Number(summary?.period_income ?? 0))}</strong></div>
-                <div><span className="chart-legend expense-legend" /><span>Расходы</span><strong>{money(Number(summary?.period_expenses ?? 0))}</strong></div>
-              </div>
-              <div className="chart-wrap">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartData} margin={{ top: 12, right: 5, left: -20, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#c7f36b" stopOpacity={0.22} /><stop offset="100%" stopColor="#c7f36b" stopOpacity={0} /></linearGradient>
-                      <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#55d6ff" stopOpacity={0.13} /><stop offset="100%" stopColor="#55d6ff" stopOpacity={0} /></linearGradient>
-                    </defs>
-                    <CartesianGrid stroke="#26323d" strokeDasharray="3 5" vertical={false} />
-                    <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: "#778592", fontSize: 11 }} dy={12} />
-                    <Tooltip contentStyle={{ background: "#18232d", border: "1px solid #30404e", borderRadius: 12, color: "#f3f6f8", fontSize: 12 }} formatter={(value) => money(Number(value))} />
-                    <Area type="monotone" dataKey="income" stroke="#c7f36b" strokeWidth={2.4} fill="url(#incomeGradient)" />
-                    <Area type="monotone" dataKey="expenses" stroke="#55d6ff" strokeWidth={2.1} fill="url(#expenseGradient)" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="chart-bottom-note"><span><span className="note-pulse" /> {dataLoading ? "Обновляем данные..." : "Данные аккаунта"}</span><span>Чистый поток <strong>{money(Number(summary?.period_income ?? 0) - Number(summary?.period_expenses ?? 0))}</strong></span></div>
-            </article>
-
-            <article className="panel budget-panel">
-              <div className="panel-heading budget-heading">
-                <div><div className="panel-kicker">СТРУКТУРА РАСХОДОВ</div><h2>По категориям</h2><p>Распределение расходов за {periodName}.</p></div>
-              </div>
-              <div className="budget-total-row"><div><strong>{money(Number(summary?.period_expenses ?? 0))}</strong><span> всего за период</span></div><span className="budget-percent">{categoryExpenses.length} кат.</span></div>
-              <div className="budget-list">
-                {categoryExpenses.length === 0 ? (
-                  <div className="empty-state">Пока нет расходов за выбранный период.</div>
-                ) : categoryExpenses.slice(0, 5).map((item, index) => {
-                  const color = ["lime", "cyan", "violet"][index % 3];
-                  const amount = Number(item.amount);
-                  const percent = maxCategoryExpense > 0 ? (amount / maxCategoryExpense) * 100 : 0;
-                  return (
-                    <div className="budget-item" key={item.category}>
-                      <div className="budget-item-top"><span className={"budget-category-icon " + color}>₽</span><strong>{item.category}</strong><span className="budget-amount">{money(amount)}</span></div>
-                      <div className={"budget-track " + color}><span style={{ width: percent + "%" }} /></div>
-                    </div>
-                  );
-                })}
-              </div>
-            </article>
-          </section>
-
-          <section className="panel transactions-panel">
-            <div className="panel-heading transactions-heading">
-              <div><div className="panel-kicker">ПОСЛЕДНИЕ ОПЕРАЦИИ</div><h2>{activeNav === "Операции" ? "Все операции" : "Последние операции"}</h2><p>История ваших финансовых операций.</p></div>
-              <button className="secondary-button compact-button" onClick={() => setActiveNav("Операции")}>Все операции <ArrowUpRight size={14} /></button>
-            </div>
-            <div className="transaction-table">
-              <div className="transaction-table-head"><span>ОПЕРАЦИЯ</span><span>КАТЕГОРИЯ</span><span>ДАТА</span><span className="amount-heading">СУММА</span></div>
-              {dataLoading ? (
-                <div className="empty-state">Загружаем операции...</div>
-              ) : visibleTransactions.slice(0, activeNav === "Операции" ? 100 : 8).map((item) => (
-                <div className="transaction-row" key={item.id}>
-                  <div className="transaction-name"><span className={"transaction-icon " + item.icon}><TransactionIcon type={item.icon} /></span><strong>{item.name}</strong><button className="transaction-delete" type="button" title="Удалить операцию" aria-label={"Удалить " + item.name} onClick={() => void deleteTransaction(item.id)}><Trash2 size={14} /></button></div>
-                  <div className="transaction-category">{item.category}</div>
-                  <div className="transaction-date">{item.date}</div>
-                  <div className={"transaction-amount " + (item.type === "income" ? "credit" : "")}>{item.type === "income" ? "+" : "−"}{money(item.amount)}</div>
-                </div>
-              ))}
-              {!dataLoading && visibleTransactions.length === 0 && (
-                <div className="empty-state">{query ? "По этому запросу операций нет." : "Операций пока нет. Добавьте первую через кнопку выше."}</div>
+              {activeNav !== "Отчёты" && (
+                <button className="secondary-button" onClick={() => setActiveNav("Отчёты")}><Download size={16} /> Экспорт</button>
+              )}
+              {activeNav !== "Настройки" && activeNav !== "Отчёты" && activeNav !== "Карты" && (
+                <button className="primary-button" onClick={() => { setFormError(""); setShowModal(true); }}><Plus size={17} strokeWidth={2.4} /> Добавить операцию</button>
               )}
             </div>
           </section>
-          <footer className="dashboard-footer"><span>© 2026 MoneyKeeper</span><span>Для ясности в финансах <span className="footer-spark">✳</span></span><span>Все системы работают <i className="footer-status" /></span></footer>
+
+          {activeNav === "Обзор" && (
+            <>
+              <section className="overview-grid">
+                <article className="balance-card">
+                  <div className="balance-card-glow" />
+                  <div className="balance-topline">
+                    <span className="balance-label"><span className="balance-icon"><Wallet size={15} /></span> ОБЩИЙ БАЛАНС</span>
+                    <button className="balance-menu" aria-label="Настройки аккаунта" onClick={() => setActiveNav("Настройки")}><Ellipsis size={20} /></button>
+                  </div>
+                  <div className="balance-value">{money(Number(summary?.balance ?? 0))}</div>
+                  <div className="balance-foot"><span className="positive-chip"><ArrowUpRight size={13} /> RUB</span><span className="balance-period">баланс по всем операциям</span></div>
+                  <div className="balance-divider" />
+                  <div className="balance-breakdown">
+                    <div><span className="breakdown-dot income-dot" /><span>Доходы всего</span><strong>{money(Number(summary?.total_income ?? 0))}</strong></div>
+                    <div><span className="breakdown-dot expense-dot" /><span>Расходы всего</span><strong>{money(Number(summary?.total_expenses ?? 0))}</strong></div>
+                    <div className="balance-card-link">За всё время</div>
+                  </div>
+                  <div className="balance-decoration">₽</div>
+                </article>
+                <article className="stat-card income-stat">
+                  <div className="stat-card-head"><span>ДОХОДЫ ЗА {periodLabel}</span><span className="stat-icon"><ArrowDownLeft size={17} /></span></div>
+                  <div className="stat-value">{money(Number(summary?.period_income ?? 0))}</div>
+                  <div className="stat-foot"><span className="positive-text">Поступления</span><span>за выбранный период</span></div>
+                </article>
+                <article className="stat-card expense-stat">
+                  <div className="stat-card-head"><span>РАСХОДЫ ЗА {periodLabel}</span><span className="stat-icon expense-icon"><ArrowUpRight size={17} /></span></div>
+                  <div className="stat-value">{money(Number(summary?.period_expenses ?? 0))}</div>
+                  <div className="stat-foot"><span className="positive-text">Списания</span><span>за выбранный период</span></div>
+                </article>
+              </section>
+              <section className="content-grid">
+                <CashflowPanel
+                  data={chartData}
+                  period={period}
+                  onPeriodChange={setPeriod}
+                  income={Number(summary?.period_income ?? 0)}
+                  expenses={Number(summary?.period_expenses ?? 0)}
+                  loading={dataLoading}
+                />
+                <CategoryBreakdownPanel items={categoryExpenses} total={Number(summary?.period_expenses ?? 0)} periodName={periodName} />
+              </section>
+              <TransactionsPanel
+                items={visibleTransactions.slice(0, 5)}
+                loading={dataLoading}
+                query={query}
+                compact
+                onDelete={(id) => void deleteTransaction(id)}
+                onViewAll={() => setActiveNav("Операции")}
+              />
+            </>
+          )}
+
+          {activeNav === "Операции" && (
+            <TransactionsPanel
+              items={visibleTransactions}
+              loading={dataLoading}
+              query={query}
+              onDelete={(id) => void deleteTransaction(id)}
+            />
+          )}
+
+          {activeNav === "Бюджеты" && (
+            <section className="feature-grid">
+              <article className="panel feature-card budget-plan-card">
+                <div className="feature-icon lime"><SlidersHorizontal size={20} /></div>
+                <div className="panel-kicker">ЛИМИТЫ И ЦЕЛИ</div>
+                <h2>Бюджеты появятся здесь</h2>
+                <p>Создание месячных лимитов и отслеживание прогресса ещё не подключены. Пока здесь доступна фактическая структура ваших расходов по категориям.</p>
+                <button className="secondary-button" onClick={() => setActiveNav("Операции")}>Посмотреть операции <ArrowUpRight size={14} /></button>
+              </article>
+              <CategoryBreakdownPanel items={categoryExpenses} total={Number(summary?.period_expenses ?? 0)} periodName={periodName} />
+            </section>
+          )}
+
+          {activeNav === "Карты" && (
+            <section className="feature-empty panel">
+              <div className="feature-icon cyan"><CreditCard size={22} /></div>
+              <div className="panel-kicker">СЧЕТА И БАНКОВСКИЕ КАРТЫ</div>
+              <h2>Подключение счетов — следующий этап</h2>
+              <p>Сейчас MoneyKeeper хранит операции, которые вы добавляете вручную. Синхронизация с банками и управление счетами пока не реализованы.</p>
+              <button className="primary-button" onClick={() => { setActiveNav("Операции"); setQuery(""); }}>Перейти к операциям <ArrowUpRight size={15} /></button>
+            </section>
+          )}
+
+          {activeNav === "Умная аналитика" && (
+            <>
+              <section className="overview-grid analytics-metrics">
+                <article className="stat-card analytics-metric">
+                  <div className="stat-card-head"><span>ЧИСТЫЙ ПОТОК</span><span className="stat-icon"><Activity size={17} /></span></div>
+                  <div className="stat-value">{money(Number(summary?.period_income ?? 0) - Number(summary?.period_expenses ?? 0))}</div>
+                  <div className="stat-foot"><span>Доходы минус расходы</span></div>
+                </article>
+                <article className="stat-card income-stat analytics-metric">
+                  <div className="stat-card-head"><span>ПОСТУПЛЕНИЯ</span><span className="stat-icon"><ArrowDownLeft size={17} /></span></div>
+                  <div className="stat-value">{money(Number(summary?.period_income ?? 0))}</div>
+                  <div className="stat-foot"><span>За {periodName}</span></div>
+                </article>
+                <article className="stat-card expense-stat analytics-metric">
+                  <div className="stat-card-head"><span>РАСХОДЫ</span><span className="stat-icon expense-icon"><ArrowUpRight size={17} /></span></div>
+                  <div className="stat-value">{money(Number(summary?.period_expenses ?? 0))}</div>
+                  <div className="stat-foot"><span>За {periodName}</span></div>
+                </article>
+              </section>
+              <section className="content-grid">
+                <CashflowPanel
+                  data={chartData}
+                  period={period}
+                  onPeriodChange={setPeriod}
+                  income={Number(summary?.period_income ?? 0)}
+                  expenses={Number(summary?.period_expenses ?? 0)}
+                  loading={dataLoading}
+                />
+                <CategoryBreakdownPanel items={categoryExpenses} total={Number(summary?.period_expenses ?? 0)} periodName={periodName} />
+              </section>
+              <article className="panel insight-card">
+                <div className="feature-icon violet"><Sparkles size={20} /></div>
+                <div>
+                  <div className="panel-kicker">НАБЛЮДЕНИЕ ЗА ПЕРИОД</div>
+                  <h2>
+                    {categoryExpenses.length > 0
+                      ? "Самая крупная категория расходов — " + categoryExpenses[0].category
+                      : "Добавьте несколько операций для первых выводов"}
+                  </h2>
+                  <p>
+                    {categoryExpenses.length > 0
+                      ? "На эту категорию приходится " + money(Number(categoryExpenses[0].amount)) + " расходов за выбранный период."
+                      : "Когда появятся операции, здесь будут отображаться полезные выводы по вашим доходам и расходам."}
+                  </p>
+                </div>
+              </article>
+            </>
+          )}
+
+          {activeNav === "Отчёты" && (
+            <section className="feature-grid reports-grid">
+              <article className="panel feature-card report-card">
+                <div className="feature-icon lime"><FileText size={20} /></div>
+                <div className="panel-kicker">ЭКСПОРТ CSV</div>
+                <h2>Ваша история — в таблице</h2>
+                <p>Скачайте последние {transactions.length} операций в CSV. Файл можно открыть в Excel, Google Таблицах или LibreOffice.</p>
+                <button className="primary-button" onClick={exportTransactionsCsv} disabled={transactions.length === 0 || dataLoading}>
+                  <Download size={16} /> Скачать CSV
+                </button>
+              </article>
+              <article className="panel report-summary-card">
+                <div className="panel-kicker">СВОДКА АККАУНТА</div>
+                <h2>Все операции</h2>
+                <div className="report-stat-row"><span>Количество записей</span><strong>{transactions.length}</strong></div>
+                <div className="report-stat-row"><span>Доходы за всё время</span><strong>{money(Number(summary?.total_income ?? 0))}</strong></div>
+                <div className="report-stat-row"><span>Расходы за всё время</span><strong>{money(Number(summary?.total_expenses ?? 0))}</strong></div>
+                <div className="report-stat-row"><span>Баланс</span><strong>{money(Number(summary?.balance ?? 0))}</strong></div>
+                <p className="feature-caption">Экспорт включает до 100 последних операций, загруженных в приложение.</p>
+              </article>
+            </section>
+          )}
+
+          {activeNav === "Настройки" && (
+            <section className="settings-grid">
+              <article className="panel feature-card settings-profile-card">
+                <div className="feature-icon violet"><Wallet size={20} /></div>
+                <div className="panel-kicker">ЛИЧНЫЙ АККАУНТ</div>
+                <h2>Профиль</h2>
+                <div className="settings-field"><span>Электронная почта</span><strong>{user.email}</strong></div>
+                <div className="settings-field"><span>Идентификатор пользователя</span><strong className="settings-id">{user.id}</strong></div>
+              </article>
+              <article className="panel feature-card settings-security-card">
+                <div className="feature-icon lime"><Settings2 size={20} /></div>
+                <div className="panel-kicker">БЕЗОПАСНОСТЬ</div>
+                <h2>Защита аккаунта</h2>
+                <p>Пароль хранится на сервере в виде Argon2id-хеша. Сессия обновляется с помощью ротации refresh-токена.</p>
+                <button className="secondary-button" onClick={() => void handleLogout()}><LogOut size={15} /> Выйти из аккаунта</button>
+              </article>
+            </section>
+          )}
+
+          <footer className="dashboard-footer">
+            <span>© 2026 MoneyKeeper</span>
+            <span>Для ясности в финансах <span className="footer-spark">✳</span></span>
+            <span>Все системы работают <i className="footer-status" /></span>
+          </footer>
         </div>
       </main>
 
