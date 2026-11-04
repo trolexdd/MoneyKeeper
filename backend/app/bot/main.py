@@ -14,6 +14,9 @@ async def configure_bot(bot: Bot, mini_app_url: str | None) -> None:
         [
             BotCommand(command="start", description="Открыть MoneyKeeper"),
             BotCommand(command="app", description="Запустить приложение"),
+            BotCommand(command="balance", description="Общий баланс"),
+            BotCommand(command="stats", description="Статистика за месяц"),
+            BotCommand(command="recent", description="Последние операции"),
             BotCommand(command="help", description="Помощь и список команд"),
         ]
     )
