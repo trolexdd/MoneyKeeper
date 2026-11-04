@@ -1,7 +1,20 @@
+from datetime import UTC, datetime
+from decimal import Decimal
+
 import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
 
+from app.bot.finance import (
+    find_linked_user_id,
+    format_money,
+    get_balance_totals,
+    get_monthly_totals,
+    get_recent_transactions,
+)
 from app.bot.keyboards import build_mini_app_keyboard, normalize_mini_app_url
-
+from app.db.base import Base
+from app.models import Transaction, User
 
 def test_empty_mini_app_url_is_not_configured() -> None:
     assert normalize_mini_app_url("") is None
@@ -39,24 +52,6 @@ def test_keyboard_contains_web_app_button() -> None:
     assert button.text == "Открыть MoneyKeeper"
     assert button.web_app is not None
     assert button.web_app.url == "https://moneykeeper.example"
-
-
-from datetime import UTC, datetime
-from decimal import Decimal
-
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session
-
-from app.bot.finance import (
-    find_linked_user_id,
-    format_money,
-    get_balance_totals,
-    get_monthly_totals,
-    get_recent_transactions,
-)
-from app.db.base import Base
-from app.models import Transaction, User
-
 
 def _make_user(db: Session, email: str, telegram_id: int | None = None) -> User:
     user = User(
