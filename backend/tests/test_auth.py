@@ -1,0 +1,339 @@
+import hashlib
+import hmac
+import json
+import time
+from collections.abc import Generator
+from urllib.parse import urlencode
+
+import pytest
+from fastapi.testclient import TestClient
+from pwdlib import PasswordHash
+from pwdlib.hashers.argon2 import Argon2Hasher
+from sqlalchemy import create_engine, select
+from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
+
+from app import models  # noqa: F401
+from app.auth.security import hash_password
+from app.core.config import get_settings
+from app.db.base import Base
+from app.db.session import get_db
+from app.main import app
+from app.models import User
+
+
+@pytest.fixture
+def client(monkeypatch: pytest.MonkeyPatch) -> Generator[TestClient, None, None]:
+    monkeypatch.setenv("APP_SECRET_KEY", "test-secret-key-with-at-least-thirty-two-characters")
+    monkeypatch.setenv("ACCESS_TOKEN_MINUTES", "15")
+    monkeypatch.setenv("REFRESH_TOKEN_DAYS", "30")
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "123456789:telegram-test-token-for-unit-tests")
+    monkeypatch.setenv("TELEGRAM_INIT_DATA_MAX_AGE_SECONDS", "3600")
+    get_settings.cache_clear()
+
+    engine = create_engine(
+        "sqlite+pysqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    test_session_factory = sessionmaker(
+        bind=engine,
+        class_=Session,
+        autoflush=False,
+        autocommit=False,
+    )
+
+    def override_get_db() -> Generator[Session, None, None]:
+        db = test_session_factory()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    app.dependency_overrides[get_db] = override_get_db
+    with TestClient(app) as test_client:
+        yield test_client
+
+    app.dependency_overrides.clear()
+    engine.dispose()
+    get_settings.cache_clear()
+
+
+def test_register_login_and_get_current_user(client: TestClient) -> None:
+    registration = client.post(
+        "/api/v1/auth/register",
+        json={"email": "  Test@Example.com ", "password": "a-strong-password-123"},
+    )
+
+    assert registration.status_code == 201
+    tokens = registration.json()
+    assert tokens["user"]["email"] == "test@example.com"
+    assert tokens["token_type"] == "bearer"
+    assert len(tokens["refresh_token"]) >= 32
+
+    profile = client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {tokens['access_token']}"},
+    )
+    assert profile.status_code == 200
+    assert profile.json()["email"] == "test@example.com"
+
+    login = client.post(
+        "/api/v1/auth/login",
+        json={"email": "TEST@example.com", "password": "a-strong-password-123"},
+    )
+    assert login.status_code == 200
+
+
+def test_duplicate_registration_is_rejected(client: TestClient) -> None:
+    payload = {"email": "duplicate@example.com", "password": "a-strong-password-123"}
+    assert client.post("/api/v1/auth/register", json=payload).status_code == 201
+    assert client.post("/api/v1/auth/register", json=payload).status_code == 409
+
+
+def test_weak_password_and_invalid_login_are_rejected(client: TestClient) -> None:
+    weak = client.post(
+        "/api/v1/auth/register",
+        json={"email": "weak@example.com", "password": "short"},
+    )
+    assert weak.status_code == 422
+
+    invalid = client.post(
+        "/api/v1/auth/login",
+        json={"email": "missing@example.com", "password": "a-strong-password-123"},
+    )
+    assert invalid.status_code == 401
+
+
+def test_refresh_rotation_and_logout_revoke_access(client: TestClient) -> None:
+    registration = client.post(
+        "/api/v1/auth/register",
+        json={"email": "session@example.com", "password": "a-strong-password-123"},
+    )
+    original = registration.json()
+
+    rotated = client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": original["refresh_token"]},
+    )
+    assert rotated.status_code == 200
+    current = rotated.json()
+    assert current["refresh_token"] != original["refresh_token"]
+
+    reused = client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": original["refresh_token"]},
+    )
+    assert reused.status_code == 401
+
+    logout = client.post(
+        "/api/v1/auth/logout",
+        json={"refresh_token": current["refresh_token"]},
+    )
+    assert logout.status_code == 204
+
+    profile = client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {current['access_token']}"},
+    )
+    assert profile.status_code == 401
+
+
+def test_invalid_access_token_is_rejected(client: TestClient) -> None:
+    response = client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": "Bearer not-a-valid-token"},
+    )
+    assert response.status_code == 401
+
+
+def test_new_hash_uses_tuned_argon2id_parameters() -> None:
+    password_hash = hash_password("a-strong-password-123")
+
+    assert "$argon2id$" in password_hash
+    assert "m=19456,t=2,p=1" in password_hash
+
+
+def test_successful_login_upgrades_legacy_argon2_hash(client: TestClient) -> None:
+    password = "a-strong-password-123"
+    registration = client.post(
+        "/api/v1/auth/register",
+        json={"email": "legacy@example.com", "password": password},
+    )
+    assert registration.status_code == 201
+
+    db_generator = app.dependency_overrides[get_db]()
+    db = next(db_generator)
+    try:
+        user = db.scalar(select(User).where(User.email == "legacy@example.com"))
+        assert user is not None
+        user.password_hash = PasswordHash(
+            (Argon2Hasher(time_cost=3, memory_cost=65_536, parallelism=4),)
+        ).hash(password)
+        db.commit()
+    finally:
+        db_generator.close()
+
+    login = client.post(
+        "/api/v1/auth/login",
+        json={"email": "legacy@example.com", "password": password},
+    )
+    assert login.status_code == 200
+
+    db_generator = app.dependency_overrides[get_db]()
+    db = next(db_generator)
+    try:
+        user = db.scalar(select(User).where(User.email == "legacy@example.com"))
+        assert user is not None
+        assert "m=19456,t=2,p=1" in user.password_hash
+    finally:
+        db_generator.close()
+
+
+
+TELEGRAM_TEST_TOKEN = "123456789:telegram-test-token-for-unit-tests"
+
+
+def build_telegram_init_data(
+    telegram_user_id: int,
+    *,
+    username: str = "moneykeeper_test",
+    auth_date: int | None = None,
+) -> str:
+    fields = {
+        "auth_date": str(auth_date if auth_date is not None else int(time.time())),
+        "query_id": "AAEAAAE",
+        "user": json.dumps(
+            {
+                "id": telegram_user_id,
+                "first_name": "MoneyKeeper",
+                "username": username,
+            },
+            separators=(",", ":"),
+        ),
+    }
+    data_check_string = "\n".join(
+        f"{key}={value}" for key, value in sorted(fields.items())
+    )
+    secret_key = hmac.new(
+        b"WebAppData",
+        TELEGRAM_TEST_TOKEN.encode("utf-8"),
+        hashlib.sha256,
+    ).digest()
+    fields["hash"] = hmac.new(
+        secret_key,
+        data_check_string.encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+    return urlencode(fields)
+
+
+def test_telegram_account_can_be_linked_and_used_for_future_login(
+    client: TestClient,
+) -> None:
+    registration = client.post(
+        "/api/v1/auth/register",
+        json={"email": "telegram-link@example.com", "password": "a-strong-password-123"},
+    )
+    assert registration.status_code == 201
+    existing_user_id = registration.json()["user"]["id"]
+    init_data = build_telegram_init_data(987654321, username="mk_user")
+
+    not_linked = client.post(
+        "/api/v1/auth/telegram",
+        json={"init_data": init_data},
+    )
+    assert not_linked.status_code == 404
+
+    linked = client.post(
+        "/api/v1/auth/telegram/link",
+        json={
+            "init_data": init_data,
+            "email": "telegram-link@example.com",
+            "password": "a-strong-password-123",
+        },
+    )
+    assert linked.status_code == 200
+    assert linked.json()["user"]["id"] == existing_user_id
+
+    telegram_login = client.post(
+        "/api/v1/auth/telegram",
+        json={"init_data": init_data},
+    )
+    assert telegram_login.status_code == 200
+    assert telegram_login.json()["user"]["id"] == existing_user_id
+
+    db_generator = app.dependency_overrides[get_db]()
+    db = next(db_generator)
+    try:
+        user = db.scalar(select(User).where(User.email == "telegram-link@example.com"))
+        assert user is not None
+        assert user.telegram_id == 987654321
+        assert user.telegram_username == "mk_user"
+    finally:
+        db_generator.close()
+
+
+def test_telegram_identity_cannot_be_linked_to_two_accounts(client: TestClient) -> None:
+    first = client.post(
+        "/api/v1/auth/register",
+        json={"email": "telegram-first@example.com", "password": "a-strong-password-123"},
+    )
+    second = client.post(
+        "/api/v1/auth/register",
+        json={"email": "telegram-second@example.com", "password": "a-strong-password-123"},
+    )
+    assert first.status_code == 201
+    assert second.status_code == 201
+    init_data = build_telegram_init_data(987654322)
+
+    linked = client.post(
+        "/api/v1/auth/telegram/link",
+        json={
+            "init_data": init_data,
+            "email": "telegram-first@example.com",
+            "password": "a-strong-password-123",
+        },
+    )
+    assert linked.status_code == 200
+
+    conflict = client.post(
+        "/api/v1/auth/telegram/link",
+        json={
+            "init_data": init_data,
+            "email": "telegram-second@example.com",
+            "password": "a-strong-password-123",
+        },
+    )
+    assert conflict.status_code == 409
+
+
+def test_telegram_init_data_signature_and_freshness_are_required(
+    client: TestClient,
+) -> None:
+    registration = client.post(
+        "/api/v1/auth/register",
+        json={"email": "telegram-invalid@example.com", "password": "a-strong-password-123"},
+    )
+    assert registration.status_code == 201
+
+    invalid_signature = client.post(
+        "/api/v1/auth/telegram/link",
+        json={
+            "init_data": "auth_date=1&user=%7B%7D&hash=" + ("0" * 64),
+            "email": "telegram-invalid@example.com",
+            "password": "a-strong-password-123",
+        },
+    )
+    assert invalid_signature.status_code == 401
+
+    stale_init_data = build_telegram_init_data(
+        987654323,
+        auth_date=int(time.time()) - 7200,
+    )
+    stale = client.post(
+        "/api/v1/auth/telegram",
+        json={"init_data": stale_init_data},
+    )
+    assert stale.status_code == 401

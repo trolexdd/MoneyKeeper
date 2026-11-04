@@ -1,0 +1,125 @@
+# MoneyKeeper Backend
+
+FastAPI backend foundation. Business modules are added incrementally.
+
+## Requirements
+
+- Python 3.12+
+- PostgreSQL 16 (or compatible)
+
+## Local setup
+
+Create the repository-root .env from .env.example. Set a unique random APP_SECRET_KEY (at least 32 characters) and the PostgreSQL connection string before using authentication.
+
+Generate a local secret in Windows CMD:
+
+```cmd
+python -c "import secrets; print(secrets.token_urlsafe(48))"
+```
+
+Copy the generated value into the repository-root .env as APP_SECRET_KEY=... . Never commit .env.
+
+Start PostgreSQL from the repository root:
+
+```bash
+docker compose up -d db
+```
+
+Then open a terminal in backend/:
+
+```bash
+python -m venv .venv
+# Windows CMD:
+.venv\\Scripts\\activate.bat
+# Windows PowerShell:
+.venv\\Scripts\\Activate.ps1
+# macOS / Linux:
+# source .venv/bin/activate
+
+python -m pip install -e ".[dev]"
+alembic upgrade head
+uvicorn app.main:app --reload
+```
+
+## API
+
+- http://127.0.0.1:8000/health/live — process liveness
+- http://127.0.0.1:8000/health/ready — PostgreSQL readiness
+- http://127.0.0.1:8000/docs — interactive OpenAPI docs
+
+Implemented authentication endpoints (prefix /api/v1/auth):
+
+- POST /register — create account and issue tokens
+- POST /login — authenticate by email and password
+- POST /refresh — rotate refresh token
+- POST /logout — revoke a session using its refresh token
+- GET /me — get the authenticated user profile
+
+The API returns access and refresh tokens in JSON. Clients must avoid logging tokens and should store refresh tokens only in an appropriately protected client-side storage mechanism.
+
+Telegram Mini App authentication is available at `POST /api/v1/auth/telegram` and account linking at `POST /api/v1/auth/telegram/link`. Configure `TELEGRAM_BOT_TOKEN` only on the backend. Raw Mini App initData is verified with HMAC-SHA-256 and a freshness window controlled by `TELEGRAM_INIT_DATA_MAX_AGE_SECONDS` (default 3600 seconds).
+
+The Telegram bot runs as a separate process from FastAPI. It registers `/start`, `/app`, and `/help`, publishes the command list, and configures the menu button. Set `TELEGRAM_MINI_APP_URL` to a public HTTPS URL to enable the Mini App button. When this variable is empty, the bot keeps the commands menu and explains that the app has not been published yet. Start the bot from `backend/` with `python -m app.bot.main`; it reads the same repository-root `.env` file as the API. Do not run multiple polling instances with the same bot token. See `docs/TELEGRAM_MINI_APP.md` for details. If the Telegram Bot API is reachable only through a local VPN proxy, set `TELEGRAM_PROXY_URL` in the repository-root `.env`, for example `http://127.0.0.1:12334` for the tested Hiddify Mixed Port. Leave it empty when direct access works. The bot uses aiogram's `AiohttpSession` proxy support; `aiohttp-socks` is installed as a backend dependency.
+
+The bot also provides read-only financial commands: `/balance` shows lifetime income, expenses and balance; `/stats` shows current UTC-month income, expenses and the three largest expense categories; `/recent` lists the latest five operations. These commands work only in a private chat and only for a Telegram ID already linked to a MoneyKeeper account through the Mini App. The bot never asks users to send account passwords in chat.
+
+Passwords use Argon2id (19 MiB, 2 passes, 1 lane). Existing hashes created with older parameters are upgraded automatically after a successful login, so the first login after this change can still take longer; subsequent logins use the tuned parameters.
+
+## Financial data
+
+Implemented transaction endpoints (prefix /api/v1/transactions):
+
+- GET / — list up to 500 of the current user's transactions
+- POST / — create an income or expense
+- DELETE /{transaction_id} — delete an owned transaction
+- GET /summary?period=week|month|year — balances, cashflow and category totals
+
+Implemented monthly budget endpoints (prefix /api/v1/budgets):
+
+- GET /?year=YYYY&month=M — list monthly category budgets with actual spending
+- POST / — create a category limit for a calendar month
+- PATCH /{budget_id} — update its limit
+- DELETE /{budget_id} — delete a budget
+
+Budget spending is calculated from expense transactions for the same user, category and UTC calendar month. Each user can create one budget per category per month. API responses include limit, spent, remaining, usage percentage and an over-limit flag. Currency is RUB in this version.
+
+Apply migrations through revision `0004_create_budgets` before using the budget endpoints.
+
+## Database migrations
+
+Alembic configuration lives in alembic.ini; migration scripts are in migrations/versions/. The database URL is loaded from application settings, so the same DATABASE_URL is used by the API and migrations.
+
+Apply migrations:
+
+```bash
+alembic upgrade head
+```
+
+Show the current revision:
+
+```bash
+alembic current
+```
+
+Create a new migration after changing SQLAlchemy models:
+
+```bash
+alembic revision --autogenerate -m "describe the schema change"
+```
+
+Always review autogenerated migrations before applying them.
+
+## Tests
+
+From backend/:
+
+```bash
+pytest
+ruff check .
+```
+
+Authentication tests use an isolated in-memory SQLite database. They cover registration, duplicate email, password validation, login, automatic upgrade of older Argon2id hashes, refresh-token rotation, logout revocation and protected profile access.
+
+## Configuration
+
+The backend reads environment variables, including DATABASE_URL, APP_ENV, APP_SECRET_KEY, ACCESS_TOKEN_MINUTES and REFRESH_TOKEN_DAYS. For local development, copy the repository-root .env.example to the repository-root .env and keep it out of Git. The backend is started from backend/, so its settings load ../.env.

@@ -1,0 +1,57 @@
+# MoneyKeeper frontend
+
+React + TypeScript + Vite dashboard using the Obsidian Finance design system.
+
+## Requirements
+
+- Node.js 20.19+ or 22.12+
+- npm
+- Backend API running at http://127.0.0.1:8000
+
+## Run locally
+
+From the repository root:
+
+    cd frontend
+    npm install
+    npm run dev
+
+Open http://127.0.0.1:5173.
+
+The API base URL defaults to `http://127.0.0.1:8000`. To override it, create `.env.local` in this directory:
+
+    VITE_API_URL=http://127.0.0.1:8000
+
+## Authentication
+
+The frontend supports registration, login, current-user loading, refresh-token rotation, and logout through the FastAPI authentication endpoints.
+
+The current development client stores tokens in `sessionStorage`, so the session is cleared when the browser tab is closed. This is a development-stage approach; before production, move refresh-token handling to Secure, HttpOnly, SameSite cookies and add a production CORS allowlist.
+
+## Telegram Mini App
+
+The frontend loads the official Telegram WebApp SDK. When launched inside Telegram, it sends the raw `Telegram.WebApp.initData` to the backend and never treats `initDataUnsafe` as authentication data. An unlinked Telegram user is prompted to prove ownership of an existing MoneyKeeper profile using its email and password; after linking, subsequent Mini App launches use Telegram authentication and the same account data.
+
+See [Telegram Mini App setup](../docs/TELEGRAM_MINI_APP.md) for the BotFather, HTTPS hosting, backend token and CORS configuration steps.
+
+## Navigation
+
+- **Обзор** — balance, income/expense totals, cashflow chart, category breakdown, latest transactions.
+- **Операции** — searchable history of up to 500 latest transactions, with delete action.
+- **Бюджеты** — monthly category limits with month selection, create/edit/delete, actual spending, remaining amount, progress, 80% warning and over-limit alert.
+- **Карты** — account and bank-card connection is a planned feature.
+- **Умная аналитика** — actual period metrics, cashflow, categories, and a basic spending observation.
+- **Отчёты** — download the 500 latest loaded transactions as CSV.
+- **Настройки** — profile details and sign-out.
+
+The desktop sidebar and mobile bottom navigation use the same destinations. Selecting a destination changes the page content; the active section is highlighted.
+
+## Transactions and dashboard data
+
+The dashboard reads transaction records and summary data from the authenticated API. Create and delete operations are persisted in PostgreSQL and scoped to the signed-in user. The balance card shows the lifetime balance; the income, expense, chart, and category breakdown follow the selected week/month/year period. Currency is RUB in this first ledger iteration.
+
+Editing an existing transaction, bank accounts/cards, and advanced exports are not implemented yet. Budgets are unique per user, category and month; the API calculates spending from actual expense transactions. Tokens are held in `sessionStorage` for local development; before production, move refresh-token handling to Secure, HttpOnly, SameSite cookies and configure a production CORS allowlist.
+
+## Production build
+
+    npm run build
