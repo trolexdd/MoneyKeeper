@@ -16,6 +16,7 @@ from app.bot.keyboards import build_mini_app_keyboard, normalize_mini_app_url
 from app.db.base import Base
 from app.models import Transaction, User
 
+
 def test_empty_mini_app_url_is_not_configured() -> None:
     assert normalize_mini_app_url("") is None
     assert normalize_mini_app_url("   ") is None
@@ -52,6 +53,7 @@ def test_keyboard_contains_web_app_button() -> None:
     assert button.text == "Открыть MoneyKeeper"
     assert button.web_app is not None
     assert button.web_app.url == "https://moneykeeper.example"
+
 
 def _make_user(db: Session, email: str, telegram_id: int | None = None) -> User:
     user = User(
@@ -96,15 +98,27 @@ def test_finance_queries_are_scoped_to_the_linked_telegram_user() -> None:
         second_user = _make_user(db, "second@example.com", telegram_id=222)
 
         _make_transaction(
-            db, first_user, "income", "1500.00", "Salary",
+            db,
+            first_user,
+            "income",
+            "1500.00",
+            "Salary",
             datetime(2026, 11, 2, 9, tzinfo=UTC),
         )
         _make_transaction(
-            db, first_user, "expense", "250.00", "Food",
+            db,
+            first_user,
+            "expense",
+            "250.00",
+            "Food",
             datetime(2026, 11, 3, 12, tzinfo=UTC),
         )
         _make_transaction(
-            db, second_user, "income", "99999.00", "Other",
+            db,
+            second_user,
+            "income",
+            "99999.00",
+            "Other",
             datetime(2026, 11, 3, 12, tzinfo=UTC),
         )
         db.commit()
@@ -133,23 +147,43 @@ def test_monthly_stats_use_current_utc_month_and_top_expense_categories() -> Non
     with Session(engine) as db:
         user = _make_user(db, "month@example.com", telegram_id=333)
         _make_transaction(
-            db, user, "income", "2000.00", "Salary",
+            db,
+            user,
+            "income",
+            "2000.00",
+            "Salary",
             datetime(2026, 11, 1, 9, tzinfo=UTC),
         )
         _make_transaction(
-            db, user, "expense", "300.00", "Food",
+            db,
+            user,
+            "expense",
+            "300.00",
+            "Food",
             datetime(2026, 11, 2, 9, tzinfo=UTC),
         )
         _make_transaction(
-            db, user, "expense", "125.00", "Transport",
+            db,
+            user,
+            "expense",
+            "125.00",
+            "Transport",
             datetime(2026, 11, 3, 9, tzinfo=UTC),
         )
         _make_transaction(
-            db, user, "income", "500.00", "Old month",
+            db,
+            user,
+            "income",
+            "500.00",
+            "Old month",
             datetime(2026, 10, 31, 23, tzinfo=UTC),
         )
         _make_transaction(
-            db, user, "expense", "999.00", "Future",
+            db,
+            user,
+            "expense",
+            "999.00",
+            "Future",
             datetime(2026, 11, 5, 9, tzinfo=UTC),
         )
         db.commit()
@@ -161,6 +195,20 @@ def test_monthly_stats_use_current_utc_month_and_top_expense_categories() -> Non
             ("Food", Decimal("300.00")),
             ("Transport", Decimal("125.00")),
         )
+
+    engine.dispose()
+
+
+def test_inactive_telegram_account_is_not_authorized() -> None:
+    engine = create_engine("sqlite+pysqlite:///:memory:")
+    Base.metadata.create_all(engine)
+
+    with Session(engine) as db:
+        user = _make_user(db, "inactive@example.com", telegram_id=444)
+        user.is_active = False
+        db.commit()
+
+        assert find_linked_user_id(db, 444) is None
 
     engine.dispose()
 
