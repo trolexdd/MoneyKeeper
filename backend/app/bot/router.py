@@ -1,7 +1,9 @@
 from datetime import UTC, datetime
+from decimal import Decimal
 from uuid import UUID
 
 from aiogram import Router
+from aiogram.enums import ChatType
 from aiogram.filters import Command, CommandStart
 from aiogram.types import Message
 from sqlalchemy.exc import SQLAlchemyError
@@ -17,22 +19,25 @@ from app.bot.keyboards import build_mini_app_keyboard
 from app.db.session import SessionLocal
 
 MONTH_NAMES = (
-    "января",
-    "февраля",
-    "марта",
-    "апреля",
-    "мая",
-    "июня",
-    "июля",
-    "августа",
-    "сентября",
-    "октября",
-    "ноября",
-    "декабря",
+    "январь",
+    "февраль",
+    "март",
+    "апрель",
+    "май",
+    "июнь",
+    "июль",
+    "август",
+    "сентябрь",
+    "октябрь",
+    "ноябрь",
+    "декабрь",
 )
 
 
 async def _require_linked_user_id(message: Message) -> UUID | None:
+    if message.chat.type != ChatType.PRIVATE:
+        await message.answer("Финансовые команды доступны только в личном чате с MoneyKeeper.")
+        return None
     if message.from_user is None:
         return None
 
@@ -53,7 +58,7 @@ async def _require_linked_user_id(message: Message) -> UUID | None:
     return user_id
 
 
-def _signed_money(amount: object, sign: str) -> str:
+def _signed_money(amount: Decimal, sign: str) -> str:
     return f"{sign}{format_money(amount)}"
 
 
